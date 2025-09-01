@@ -9,11 +9,16 @@ namespace IMD
         public ArgumentEmptyException(string message, string paramName) : base(message, paramName) { }
 
     }
-    public class ArgumentUncorrectSizeException : ArgumentException
+    public class ArgumentWrongSizeException : ArgumentException
     {
-        public ArgumentUncorrectSizeException(string message, string paramName) : base(message, paramName) { }
+        public ArgumentWrongSizeException(string message, string paramName) : base(message, paramName) { }
 
     }
+
+    /// <summary>
+    /// The class of numerical matrices
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
     public class Matrix<T> : ICloneable, IEnumerable<T> where T : IComparable<T>, INumber<T>
     {
         private T[,] __data;
@@ -54,7 +59,7 @@ namespace IMD
 
             int rows1 = a.Rows, cols1 = a.Cols, rows2 = b.Rows, cols2 = b.Cols;
 
-            if (rows1 != rows2 || cols1 != cols2) throw new ArgumentUncorrectSizeException("The matrices have different sizes", nameof(a) + ", " + nameof(b));
+            if (rows1 != rows2 || cols1 != cols2) throw new ArgumentWrongSizeException("The matrices have different sizes", nameof(a) + ", " + nameof(b));
 
             Matrix<T> result = new Matrix<T>(rows1, cols1);
 
@@ -71,7 +76,7 @@ namespace IMD
 
             int rows1 = a.Rows, cols1 = a.Cols, rows2 = b.Rows, cols2 = b.Cols;
 
-            if (rows1 != rows2 || cols1 != cols2) throw new ArgumentUncorrectSizeException("The matrices have different sizes", nameof(a) + ", " + nameof(b));
+            if (rows1 != rows2 || cols1 != cols2) throw new ArgumentWrongSizeException("The matrices have different sizes", nameof(a) + ", " + nameof(b));
 
             Matrix<T> result = new Matrix<T>(rows1, cols1);
 
@@ -102,7 +107,7 @@ namespace IMD
 
             int rows1 = a.Rows, cols1 = a.Cols, rows2 = b.Rows, cols2 = b.Cols;
 
-            if (cols1 != rows2) throw new ArgumentUncorrectSizeException("The matrices have wrong sizes", nameof(a) + ", " + nameof(b));
+            if (cols1 != rows2) throw new ArgumentWrongSizeException("The matrices have wrong sizes", nameof(a) + ", " + nameof(b));
 
             Matrix<T> result = new Matrix<T>(rows1, cols1);
 
@@ -128,7 +133,7 @@ namespace IMD
 
             int rows1 = a.Rows, cols1 = a.Cols, rows2 = b.Rows, cols2 = b.Cols;
 
-            if (rows1 != rows2 || cols1 != cols2) throw new ArgumentUncorrectSizeException("The matrices have different sizes", nameof(a) + ", " + nameof(b));
+            if (rows1 != rows2 || cols1 != cols2) throw new ArgumentWrongSizeException("The matrices have different sizes", nameof(a) + ", " + nameof(b));
 
             for (int i = 0; i < rows1; ++i)
                 for (int j = 0; j < cols1; ++j)
@@ -275,6 +280,9 @@ namespace IMD
         }
     }
 
+    /// <summary>
+    /// The static class that includes methods for numeric matrices
+    /// </summary>
     public static class MatrixMethods
     {
         /// Printing methods
@@ -520,7 +528,7 @@ namespace IMD
         {
             if (mrx is null) throw new ArgumentNullException("The matrix is null", nameof(mrx));
             if (mrx.IsEmpty()) throw new ArgumentEmptyException("The matrix is empty", nameof(mrx));
-            if (!mrx.IsSquare()) throw new ArgumentUncorrectSizeException("The matrix isn't square", nameof(mrx));
+            if (!mrx.IsSquare()) throw new ArgumentWrongSizeException("The matrix isn't square", nameof(mrx));
 
             int size = mrx.Rows;
 
@@ -560,7 +568,7 @@ namespace IMD
         public static T FrobeniusNorm<T>(Matrix<T> mrx) where T : IComparable<T>, INumber<T>
         {
             if (mrx is null) throw new ArgumentNullException("The matrix is null", nameof(mrx));
-            if (mrx.IsEmpty()) throw new ArgumentUncorrectSizeException("The matrix is empty", nameof(mrx));
+            if (mrx.IsEmpty()) throw new ArgumentWrongSizeException("The matrix is empty", nameof(mrx));
 
             T result = default(T);
             int rows = mrx.Rows, cols = mrx.Cols;
@@ -648,7 +656,7 @@ namespace IMD
         {
             if (mrx is null) throw new ArgumentNullException("The matrix is null", nameof(mrx));
             if (mrx.IsEmpty()) throw new ArgumentEmptyException("The matrix is empty", nameof(mrx));
-            if (!mrx.IsSquare()) throw new ArgumentUncorrectSizeException("The matrix isn't square", nameof(mrx));
+            if (!mrx.IsSquare()) throw new ArgumentWrongSizeException("The matrix isn't square", nameof(mrx));
 
             int size = mrx.Rows;
 
@@ -770,7 +778,7 @@ namespace IMD
         {
             if (mrx is null) throw new ArgumentNullException("The matrix is null", nameof(mrx));
             if (mrx.IsEmpty()) throw new ArgumentEmptyException("The matrix is empty", nameof(mrx));
-            if (!mrx.IsSquare()) throw new ArgumentUncorrectSizeException("The matrix isn't square", nameof(mrx));
+            if (!mrx.IsSquare()) throw new ArgumentWrongSizeException("The matrix isn't square", nameof(mrx));
 
             Transpose(mrx);
 
@@ -813,7 +821,7 @@ namespace IMD
         {
             if (mrx is null) throw new ArgumentNullException("The matrix is null", nameof(mrx));
             if (mrx.IsEmpty()) throw new ArgumentEmptyException("The matrix is empty", nameof(mrx));
-            if (!mrx.IsSquare()) throw new ArgumentUncorrectSizeException("The matrix isn't square", nameof(mrx));
+            if (!mrx.IsSquare()) throw new ArgumentWrongSizeException("The matrix isn't square", nameof(mrx));
 
             Transpose(mrx);
 
@@ -1424,6 +1432,456 @@ namespace IMD
             return paths[rows - 1, cols - 1];
         }
 
+
+        // Returns the length of the longest ascending path in the matrix 'mrx'. The severity of the inequality is determined by the 'isSeverity' argument
+        public static int LongestIncreasingPathLength<T>(Matrix<T> mrx, bool isSeverity = true) where T : IComparable<T>, INumber<T>
+        {
+            if (mrx is null) throw new ArgumentNullException("The matrix is null", nameof(mrx));
+            if (mrx.IsEmpty()) throw new ArgumentEmptyException("The matrix is empty", nameof(mrx));
+
+            int rows = mrx.Rows, cols = mrx.Cols;
+            var dp = new int[rows, cols];
+            var visited = new bool[rows, cols];
+
+            int DFS(int r, int c)
+            {
+                if (dp[r, c] != 0) return dp[r, c];
+                if (visited[r, c]) return 0;
+
+                visited[r, c] = true;
+                int maxLen = 1;
+
+                foreach (var dir in IMD.Constants.DIRECTIONS_WITHOUT_DIAGONAL)
+                {
+                    int nr = r + dir[0], nc = c + dir[1];
+
+                    if (nr >= 0 && nr < rows && nc >= 0 && nc < cols)
+                    {
+                        bool condition = isSeverity ? mrx[nr, nc].CompareTo(mrx[r, c]) > 0 : mrx[nr, nc].CompareTo(mrx[r, c]) >= 0;
+                        
+                        if (condition)
+                        {
+                            int len = 1 + DFS(nr, nc);
+
+                            if (len > maxLen) maxLen = len;
+                        }
+                    }
+                }
+
+                visited[r, c] = false;
+                dp[r, c] = maxLen;
+                return maxLen;
+            }
+
+            int result = 0;
+
+            for (int i = 0; i < rows; ++i)
+            {
+                for (int j = 0; j < cols; ++j)
+                {
+                    int len = DFS(i, j);
+
+                    if (len > result) result = len;
+                }
+            }
+
+            return result;
+        }
+        // Returns the length of the longest descending path in the matrix 'mrx'. The severity of the inequality is determined by the 'isSeverity' argument
+        public static int LongestDecreasingPathLength<T>(Matrix<T> mrx, bool isSeverity = true) where T : IComparable<T>, INumber<T>
+        {
+            if (mrx is null) throw new ArgumentNullException("The matrix is null", nameof(mrx));
+            if (mrx.IsEmpty()) throw new ArgumentEmptyException("The matrix is empty", nameof(mrx));
+
+            int rows = mrx.Rows, cols = mrx.Cols;
+            var dp = new int[rows, cols];
+            var visited = new bool[rows, cols];
+
+            int DFS(int r, int c)
+            {
+                if (dp[r, c] != 0) return dp[r, c];
+                if (visited[r, c]) return 0;
+
+                visited[r, c] = true;
+                int maxLen = 1;
+
+                foreach (var dir in IMD.Constants.DIRECTIONS_WITHOUT_DIAGONAL)
+                {
+                    int nr = r + dir[0], nc = c + dir[1];
+
+                    if (nr >= 0 && nr < rows && nc >= 0 && nc < cols)
+                    {
+                        bool condition = isSeverity ? mrx[nr, nc].CompareTo(mrx[r, c]) < 0 : mrx[nr, nc].CompareTo(mrx[r, c]) <= 0;
+                        
+                        if (condition)
+                        {
+                            int len = 1 + DFS(nr, nc);
+
+                            if (len > maxLen) maxLen = len;
+                        }
+                    }
+                }
+
+                visited[r, c] = false;
+                dp[r, c] = maxLen;
+
+                return maxLen;
+            }
+
+            int result = 0;
+
+            for (int i = 0; i < rows; ++i)
+            {
+                for (int j = 0; j < cols; ++j)
+                {
+                    int len = DFS(i, j);
+
+                    if (len > result) result = len;
+                }
+            }
+
+            return result;
+        }
+
+
+        // Returns the longest ascending path in the matrix 'mrx'. The severity of the inequality is determined by the 'isSeverity' argument
+        public static List<(int r, int c)> LongestIncreasingPath<T>(Matrix<T> mrx, bool isSeverity = true) where T : IComparable<T>, INumber<T>
+        {
+            if (mrx is null) throw new ArgumentNullException("The matrix is null", nameof(mrx));
+            if (mrx.IsEmpty()) throw new ArgumentEmptyException("The matrix is empty", nameof(mrx));
+
+            int rows = mrx.Rows, cols = mrx.Cols;
+            var dp = new int[rows, cols];
+            var paths = new List<(int, int)>[rows, cols];
+            var visited = new bool[rows, cols];
+
+            List<(int, int)> DFS(int r, int c)
+            {
+                if (paths[r, c] != null) return paths[r, c];
+                if (visited[r, c]) return new List<(int, int)>();
+
+                visited[r, c] = true;
+
+                var bestPath = new List<(int, int)> { (r, c) };
+                int maxLen = 1;
+
+                foreach (var dir in IMD.Constants.DIRECTIONS_WITHOUT_DIAGONAL)
+                {
+                    int nr = r + dir[0], nc = c + dir[1];
+
+                    if (nr >= 0 && nr < rows && nc >= 0 && nc < cols)
+                    {
+                        bool condition = isSeverity ? mrx[nr, nc].CompareTo(mrx[r, c]) > 0 : mrx[nr, nc].CompareTo(mrx[r, c]) >= 0;
+                        if (condition)
+                        {
+                            var neighborPath = DFS(nr, nc);
+
+                            if (neighborPath.Count + 1 > maxLen)
+                            {
+                                maxLen = neighborPath.Count + 1;
+                                bestPath = new List<(int, int)> { (r, c) };
+                                bestPath.AddRange(neighborPath);
+                            }
+                        }
+                    }
+                }
+
+                visited[r, c] = false;
+                dp[r, c] = maxLen;
+                paths[r, c] = bestPath;
+
+                return bestPath;
+            }
+
+            List<(int, int)> result = new List<(int, int)>();
+
+            for (int i = 0; i < rows; ++i)
+            {
+                for (int j = 0; j < cols; ++j)
+                {
+                    var path = DFS(i, j);
+
+                    if (path.Count > result.Count) result = path;
+                }
+            }
+
+            return result;
+        }
+        // Returns the longest descending path in the matrix 'mrx'. The severity of the inequality is determined by the 'isSeverity' argument
+        public static List<(int r, int c)> LongestDecreasingPath<T>(Matrix<T> mrx, bool isSeverity = true) where T : IComparable<T>, INumber<T>
+        {
+            if (mrx is null) throw new ArgumentNullException("The matrix is null", nameof(mrx));
+            if (mrx.IsEmpty()) throw new ArgumentEmptyException("The matrix is empty", nameof(mrx));
+
+            int rows = mrx.Rows, cols = mrx.Cols;
+            var dp = new int[rows, cols];
+            var paths = new List<(int, int)>[rows, cols];
+            var visited = new bool[rows, cols];
+
+            List<(int, int)> DFS(int r, int c)
+            {
+                if (paths[r, c] != null) return paths[r, c];
+                if (visited[r, c]) return new List<(int, int)>();
+
+                visited[r, c] = true;
+
+                var bestPath = new List<(int, int)> { (r, c) };
+                int maxLen = 1;
+
+                foreach (var dir in IMD.Constants.DIRECTIONS_WITHOUT_DIAGONAL)
+                {
+                    int nr = r + dir[0], nc = c + dir[1];
+
+                    if (nr >= 0 && nr < rows && nc >= 0 && nc < cols)
+                    {
+                        bool condition = isSeverity ? mrx[nr, nc].CompareTo(mrx[r, c]) < 0 : mrx[nr, nc].CompareTo(mrx[r, c]) <= 0;
+                        if (condition)
+                        {
+                            var neighborPath = DFS(nr, nc);
+
+                            if (neighborPath.Count + 1 > maxLen)
+                            {
+                                maxLen = neighborPath.Count + 1;
+                                bestPath = new List<(int, int)> { (r, c) };
+                                bestPath.AddRange(neighborPath);
+                            }
+                        }
+                    }
+                }
+
+                visited[r, c] = false;
+                dp[r, c] = maxLen;
+                paths[r, c] = bestPath;
+
+                return bestPath;
+            }
+
+            List<(int, int)> result = new List<(int, int)>();
+
+            for (int i = 0; i < rows; ++i)
+            {
+                for (int j = 0; j < cols; ++j)
+                {
+                    var path = DFS(i, j);
+
+                    if (path.Count > result.Count) result = path;
+                }
+            }
+
+            return result;
+        }
+
+        // Returns the number of increasing paths in the matrix 'mrx'. The severity of the inequality is determined by the 'isSeverity' argument
+        public static int CountIncreasingPaths<T>(Matrix<T> mrx, bool isSeverity = true) where T : IComparable<T>, INumber<T>
+        {
+            if (mrx is null) throw new ArgumentNullException("The matrix is null", nameof(mrx));
+            if (mrx.IsEmpty()) throw new ArgumentEmptyException("The matrix is empty", nameof(mrx));
+
+            int rows = mrx.Rows, cols = mrx.Cols;
+            var dp = new int[rows, cols];
+            var visited = new bool[rows, cols];
+
+            int DFS(int r, int c)
+            {
+                if (dp[r, c] != 0) return dp[r, c];
+                if (visited[r, c]) return 0;
+
+                visited[r, c] = true;
+                int count = 1;
+
+                foreach (var dir in IMD.Constants.DIRECTIONS_WITHOUT_DIAGONAL)
+                {
+                    int nr = r + dir[0], nc = c + dir[1];
+
+                    if (nr >= 0 && nr < rows && nc >= 0 && nc < cols)
+                    {
+                        bool condition = isSeverity ? mrx[nr, nc].CompareTo(mrx[r, c]) > 0 : mrx[nr, nc].CompareTo(mrx[r, c]) >= 0;
+                        if (condition) count += DFS(nr, nc);
+                    }
+                }
+
+                visited[r, c] = false;
+                dp[r, c] = count;
+
+                return count;
+            }
+
+            int result = 0;
+
+            for (int i = 0; i < rows; ++i)
+                for (int j = 0; j < cols; ++j)
+                    result += DFS(i, j);
+
+            return result;
+        }
+        // Returns the number of decreasing paths in the matrix 'mrx'. The severity of the inequality is determined by the 'isSeverity' argument
+        public static int CountDecreasingPaths<T>(Matrix<T> mrx, bool isSeverity = true) where T : IComparable<T>, INumber<T>
+        {
+            if (mrx is null) throw new ArgumentNullException("The matrix is null", nameof(mrx));
+            if (mrx.IsEmpty()) throw new ArgumentEmptyException("The matrix is empty", nameof(mrx));
+
+            int rows = mrx.Rows, cols = mrx.Cols;
+            var dp = new int[rows, cols];
+            var visited = new bool[rows, cols];
+
+            int DFS(int r, int c)
+            {
+                if (dp[r, c] != 0) return dp[r, c];
+                if (visited[r, c]) return 0;
+
+                visited[r, c] = true;
+                int count = 1;
+
+                foreach (var dir in IMD.Constants.DIRECTIONS_WITHOUT_DIAGONAL)
+                {
+                    int nr = r + dir[0], nc = c + dir[1];
+
+                    if (nr >= 0 && nr < rows && nc >= 0 && nc < cols)
+                    {
+                        bool condition = isSeverity ? mrx[nr, nc].CompareTo(mrx[r, c]) < 0 : mrx[nr, nc].CompareTo(mrx[r, c]) <= 0;
+                        
+                        if (condition) count += DFS(nr, nc);
+                    }
+                }
+
+                visited[r, c] = false;
+                dp[r, c] = count;
+
+                return count;
+            }
+
+            int result = 0;
+
+            for (int i = 0; i < rows; ++i)
+                for (int j = 0; j < cols; ++j)
+                    result += DFS(i, j);
+
+            return result;
+        }
+
+        // Returns the maximum amount of gold that can be collected in the matrix 'grid', starting from any positive cell and moving only in four directions (up, down, left, right) without diagonals
+        public static T GetMaxGold<T>(Matrix<T> grid) where T : IComparable<T>, INumber<T>
+        {
+            if (grid is null) throw new ArgumentNullException("The matrix is null", nameof(grid));
+            if (grid.IsEmpty()) throw new ArgumentEmptyException("The matrix is empty", nameof(grid));
+
+            int rows = grid.Rows, cols = grid.Cols;
+            T result = default(T);
+            bool maxGoldInitialized = false;
+            var visited = new bool[rows, cols];
+
+            void DFS(int r, int c, T currentSum)
+            {
+                if (!maxGoldInitialized || currentSum.CompareTo(result) > 0)
+                {
+                    result = currentSum;
+                    maxGoldInitialized = true;
+                }
+
+                foreach (var dir in IMD.Constants.DIRECTIONS_WITHOUT_DIAGONAL)
+                {
+                    int nr = r + dir[0];
+                    int nc = c + dir[1];
+
+                    if (nr >= 0 && nr < rows && nc >= 0 && nc < cols)
+                    {
+                        if (!visited[nr, nc] && Comparer<T>.Default.Compare(grid[nr, nc], default(T)) > 0)
+                        {
+                            visited[nr, nc] = true;
+                            T sum = currentSum;
+                            sum += (dynamic)grid[nr, nc];
+
+                            DFS(nr, nc, sum);
+
+                            visited[nr, nc] = false;
+                        }
+                    }
+                }
+            }
+
+            for (int i = 0; i < rows; ++i)
+            {
+                for (int j = 0; j < cols; ++j)
+                {
+                    if (Comparer<T>.Default.Compare(grid[i, j], default(T)) > 0)
+                    {
+                        visited[i, j] = true;
+                        DFS(i, j, grid[i, j]);
+                        visited[i, j] = false;
+                    }
+                }
+            }
+
+            return result;
+        }
+        // Returns the maximum amount of gold that can be collected in the matrix 'grid' under the following conditions:
+        // - Start from any cell containing gold (> 0).
+        // - Move only up, down, left, or right (no diagonals).
+        // - Do not visit the same cell more than once.
+        // - Never visit cells with 0 gold.
+        // - Collect all gold from each visited cell.
+        public static List<(int r, int c)> GetMaxGoldPath<T>(Matrix<T> grid) where T : IComparable<T>, INumber<T>
+        {
+            if (grid is null) throw new ArgumentNullException("The matrix is null", nameof(grid));
+            if (grid.IsEmpty()) throw new ArgumentEmptyException("The matrix is empty", nameof(grid));
+
+            int rows = grid.Rows, cols = grid.Cols;
+            T maxGold = default(T);
+            bool maxGoldInitialized = false;
+            var visited = new bool[rows, cols];
+            var currentPath = new List<(int, int)>();
+            var result = new List<(int, int)>();
+
+            void DFS(int r, int c, T currentSum)
+            {
+                currentPath.Add((r, c));
+
+                if (!maxGoldInitialized || currentSum.CompareTo(maxGold) > 0)
+                {
+                    maxGold = currentSum;
+                    maxGoldInitialized = true;
+                    result = new List<(int, int)>(currentPath);
+                }
+
+                foreach (var dir in IMD.Constants.DIRECTIONS_WITHOUT_DIAGONAL)
+                {
+                    int nr = r + dir[0], nc = c + dir[1];
+
+                    if (nr >= 0 && nr < rows && nc >= 0 && nc < cols)
+                    {
+                        if (!visited[nr, nc] && Comparer<T>.Default.Compare(grid[nr, nc], default(T)) > 0)
+                        {
+                            visited[nr, nc] = true;
+                            T sum = currentSum;
+                            sum += grid[nr, nc];
+
+                            DFS(nr, nc, sum);
+
+                            visited[nr, nc] = false;
+                        }
+                    }
+                }
+
+                currentPath.RemoveAt(currentPath.Count - 1);
+            }
+
+            for (int i = 0; i < rows; ++i)
+            {
+                for (int j = 0; j < cols; ++j)
+                {
+                    if (Comparer<T>.Default.Compare(grid[i, j], default(T)) > 0)
+                    {
+                        visited[i, j] = true;
+                        DFS(i, j, grid[i, j]);
+                        visited[i, j] = false;
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        /// Helper methods
 
         private static List<(int, int)> ReconstructCycle((int, int) start, (int, int) end, (int, int)[,] parent)
         {
