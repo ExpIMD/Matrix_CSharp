@@ -9,18 +9,15 @@
 
             List<List<int>> llst = new List<List<int>>()
             {
-                new List<int> { 1, 2, 3 },
-                new List<int> { 4, 5, 6 },
-                new List<int> { 7, 8, 9 },
+                new List<int> { 1, 1, 1 },
+                new List<int> { 1, 0, 1 },
+                new List<int> { 1, 1, 1 },
             };
 
             Matrix<int> a = MatrixMethods.ToMatrix(llst);
-            Matrix<int> b = MatrixMethods.GetTranspose(a);
-            MatrixMethods.PrintLine(b, Console.Out);
-            MatrixMethods.PrintLine(a, Console.Out);
-
-            Console.WriteLine(MatrixMethods.Determinant(a));
-
+            foreach (var x in MatrixMethods.DFSGetCycle(a))
+                Console.Write(x + "-> ");
+;
             Console.ReadLine();
         }
     }

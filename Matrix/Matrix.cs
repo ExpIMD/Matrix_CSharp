@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.IO;
 using System.Numerics;
 
 namespace IMD
@@ -480,7 +481,7 @@ namespace IMD
             return result;
         }
 
-        // Math methods
+        /// Math methods
 
         // Returns a submatrix obtained from the matrix 'mrx' by excluding the row with index 'excludedRow' and the column with index 'excludedCol'
         public static Matrix<T> GetSubMatrix<T>(Matrix<T> mrx, int excludedRow, int excludedCol) where T : IComparable<T>, INumber<T>
@@ -827,6 +828,646 @@ namespace IMD
                     mrx[n - 1 - i, j] = temp;
                 }
             }
+        }
+
+        // Checks for cycle in matrix 'mrx' using DFS
+        public static bool DFSCheckCycle<T>(Matrix<T> mrx) where T : IComparable<T>, INumber<T>
+        {
+            if (mrx is null) throw new ArgumentNullException("The matrix is null", nameof(mrx));
+            if (mrx.IsEmpty()) throw new ArgumentEmptyException("The matrix is empty", nameof(mrx));
+            
+            if (mrx.Size == 1) return true;
+
+            int rows = mrx.Rows, cols = mrx.Cols;
+            var visited = new List<List<bool>>(rows);
+
+            for (int i = 0; i < rows; ++i)
+            {
+                var row = new List<bool>(cols);
+
+                for (int j = 0; j < cols; ++j)
+                    row.Add(false);
+
+                visited.Add(row);
+            }
+
+            bool DFS(int startX, int startY)
+            {
+                T targetChar = mrx[startX, startY];
+                var stack = new Stack<(int currentX, int currentY, int prevX, int prevY)>();
+                stack.Push((startX, startY, -1, -1));
+                visited[startX][startY] = true;
+
+                while (stack.Count > 0)
+                {
+                    var (currentX, currentY, previousX, previousY) = stack.Pop();
+
+                    foreach (var dir in IMD.Constants.DIRECTIONS_WITHOUT_DIAGONAL)
+                    {
+                        int newX = currentX + dir[0];
+                        int newY = currentY + dir[1];
+
+                        if (newX == previousX && newY == previousY) continue;
+
+                        if (newX < 0 || newY < 0 || newX >= rows || newY >= cols) continue;
+
+                        if (!EqualityComparer<T>.Default.Equals(mrx[newX, newY], targetChar)) continue;
+
+                        if (visited[newX][newY]) return true;
+
+                        visited[newX][newY] = true;
+                        stack.Push((newX, newY, currentX, currentY));
+                    }
+                }
+                return false;
+            }
+
+            for (int i = 0; i < rows; ++i)
+                for (int j = 0; j < cols; ++j)
+                    if (!visited[i][j] && DFS(i, j))
+                        return true;
+
+            return false;
+        }
+        // Checks for cycle in matrix 'mrx' using BFS
+        public static bool BFSCheckCycle<T>(Matrix<T> mrx) where T : IComparable<T>, INumber<T>
+        {
+            if (mrx is null) throw new ArgumentNullException("The matrix is null", nameof(mrx));
+            if (mrx.IsEmpty()) throw new ArgumentEmptyException("The matrix is empty", nameof(mrx));
+
+            if (mrx.Size == 1) return true;
+
+            int rows = mrx.Rows, cols = mrx.Cols;
+            var visited = new List<List<bool>>(rows);
+
+            for (int i = 0; i < rows; ++i)
+            {
+                var row = new List<bool>(cols);
+
+                for (int j = 0; j < cols; ++j)
+                    row.Add(false);
+
+                visited.Add(row);
+            }
+
+            bool BFS(int startX, int startY)
+            {
+                T targetChar = mrx[startX, startY];
+                var queue = new Queue<(int currentX, int currentY, int prevX, int prevY)>();
+                queue.Enqueue((startX, startY, -1, -1));
+                visited[startX][startY] = true;
+
+                while (queue.Count > 0)
+                {
+                    var (currentX, currentY, previousX, previousY) = queue.Dequeue();
+
+                    foreach (var dir in IMD.Constants.DIRECTIONS_WITHOUT_DIAGONAL)
+                    {
+                        int newX = currentX + dir[0];
+                        int newY = currentY + dir[1];
+
+                        if (newX == previousX && newY == previousY) continue;
+
+                        if (newX < 0 || newY < 0 || newX >= rows || newY >= cols) continue;
+
+                        if (!EqualityComparer<T>.Default.Equals(mrx[newX, newY], targetChar)) continue;
+
+                        if (visited[newX][newY]) return true;
+
+                        visited[newX][newY] = true;
+                        queue.Enqueue((newX, newY, currentX, currentY));
+                    }
+                }
+
+                return false;
+            }
+
+            for (int i = 0; i < rows; ++i)
+                for (int j = 0; j < cols; ++j)
+                    if (!visited[i][j] && BFS(i, j))
+                        return true;
+
+            return false;
+        }
+
+        // Returns the cycle in matrix mrx using DFS
+        public static List<(int, int)> DFSGetCycle<T>(Matrix<T> mrx) where T : IComparable<T>, INumber<T>
+        {
+            if (mrx is null) throw new ArgumentNullException("The matrix is null", nameof(mrx));
+            if (mrx.IsEmpty()) throw new ArgumentEmptyException("The matrix is empty", nameof(mrx));
+            if (mrx.Size < 4) return new List<(int, int)>();
+
+            int rows = mrx.Rows, cols = mrx.Cols;
+            var visited = new bool[rows, cols];
+            var parent = new (int, int)[rows, cols];
+
+            for (int i = 0; i < rows; ++i)
+                for (int j = 0; j < cols; ++j)
+                    parent[i, j] = (-1, -1);
+
+            for (int i = 0; i < rows; ++i)
+            {
+                for (int j = 0; j < cols; ++j)
+                {
+                    if (visited[i, j]) continue;
+
+                    var stack = new Stack<(int, int)>();
+                    stack.Push((i, j));
+                    visited[i, j] = true;
+                    parent[i, j] = (-1, -1);
+
+                    while (stack.Count > 0)
+                    {
+                        var current = stack.Pop();
+                        int x = current.Item1, y = current.Item2;
+
+                        foreach (var dir in IMD.Constants.DIRECTIONS_WITHOUT_DIAGONAL)
+                        {
+                            int nx = x + dir[0];
+                            int ny = y + dir[1];
+
+                            if (nx < 0 || ny < 0 || nx >= rows || ny >= cols) continue;
+                            if (!EqualityComparer<T>.Default.Equals(mrx[nx, ny], mrx[x, y])) continue;
+
+                            if (!visited[nx, ny])
+                            {
+                                visited[nx, ny] = true;
+                                parent[nx, ny] = current;
+                                stack.Push((nx, ny));
+                            }
+                            else if (!parent[current.Item1, current.Item2].Equals((nx, ny)))
+                            {
+                                var cycle = ReconstructCycle(current, (nx, ny), parent);
+
+                                if (cycle.Count >= 4) return cycle;
+                            }
+                        }
+                    }
+                }
+            }
+
+            return new List<(int, int)>();
+        }
+        // Returns the cycle in matrix mrx using BFS
+        public static List<(int, int)> BFSGetCycle<T>(Matrix<T> mrx) where T : IComparable<T>, INumber<T>
+        {
+            if (mrx is null) throw new ArgumentNullException("The matrix is null", nameof(mrx));
+            if (mrx.IsEmpty()) throw new ArgumentEmptyException("The matrix is empty", nameof(mrx));
+
+            int rows = mrx.Rows, cols = mrx.Cols;
+            var visited = new bool[rows, cols];
+            var parent = new (int, int)[rows, cols];
+
+            for (int i = 0; i < rows; ++i)
+                for (int j = 0; j < cols; ++j)
+                    parent[i, j] = (-1, -1);
+
+            List<(int, int)> BFS(int startX, int startY)
+            {
+                var queue = new Queue<(int, int)>();
+                visited[startX, startY] = true;
+                parent[startX, startY] = (-1, -1);
+                queue.Enqueue((startX, startY));
+
+                while (queue.Count > 0)
+                {
+                    var current = queue.Dequeue();
+
+                    foreach (var dir in IMD.Constants.DIRECTIONS_WITHOUT_DIAGONAL)
+                    {
+                        int nx = current.Item1 + dir[0];
+                        int ny = current.Item2 + dir[1];
+
+                        if (nx < 0 || ny < 0 || nx >= rows || ny >= cols) continue;
+                        if (!EqualityComparer<T>.Default.Equals(mrx[nx, ny], mrx[current.Item1, current.Item2])) continue;
+
+                        if (!visited[nx, ny])
+                        {
+                            visited[nx, ny] = true;
+                            parent[nx, ny] = current;
+                            queue.Enqueue((nx, ny));
+                        }
+                        else if (!parent[current.Item1, current.Item2].Equals((nx, ny)))
+                        {
+                            var candidateCycle = ReconstructCycle(current, (nx, ny), parent);
+
+                            if (candidateCycle.Count >= 4) return candidateCycle;
+                        }
+                    }
+                }
+
+                return new List<(int, int)>();
+            }
+
+            for (int i = 0; i < rows; ++i)
+            {
+                for (int j = 0; j < cols; ++j)
+                {
+                    if (!visited[i, j])
+                    {
+                        var cycle = BFS(i, j);
+                        if (cycle.Count > 0)
+                            return cycle;
+                    }
+                }
+            }
+
+            return new List<(int, int)>();
+        }
+
+        // Returns the maximum sum along the path from the upper left to the lower right corner of matrix 'mrx', moving only to the right or down (no diagonal transitions)
+        public static T MaxPathSumWithoutDiagonal<T>(Matrix<T> mrx) where T : IComparable<T>, INumber<T>
+        {
+            if (mrx is null) throw new ArgumentNullException("The matrix is null", nameof(mrx));
+            if (mrx.IsEmpty()) throw new ArgumentEmptyException("The matrix is empty", nameof(mrx));
+
+            int rows = mrx.Rows, cols = mrx.Cols;
+            var dp = new Matrix<T>(rows, cols);
+            dynamic zero = default(T);
+
+            dp[0, 0] = mrx[0, 0];
+
+            for (int j = 1; j < cols; ++j)
+                dp[0, j] = (dynamic)dp[0, j - 1] + (dynamic)mrx[0, j];
+
+            for (int i = 1; i < rows; ++i)
+                dp[i, 0] = (dynamic)dp[i - 1, 0] + (dynamic)mrx[i, 0];
+
+            for (int i = 1; i < rows; ++i)
+            {
+                for (int j = 1; j < cols; ++j)
+                {
+                    dynamic left = dp[i, j - 1];
+                    dynamic up = dp[i - 1, j];
+                    dynamic max = left.CompareTo(up) > 0 ? left : up;
+                    dp[i, j] = max + (dynamic)mrx[i, j];
+                }
+            }
+
+            return dp[rows - 1, cols - 1];
+        }
+        // Returns the maximum sum along the path from the upper left to the lower right corner of matrix 'mrx', moving only to the right, down, and diagonally down
+        public static T MaxPathSumWithDiagonal<T>(Matrix<T> mrx) where T : IComparable<T>, INumber<T>
+        {
+            if (mrx is null) throw new ArgumentNullException("The matrix is null", nameof(mrx));
+            if (mrx.IsEmpty()) throw new ArgumentEmptyException("The matrix is empty", nameof(mrx));
+
+            int rows = mrx.Rows, cols = mrx.Cols;
+            var dp = new Matrix<T>(rows, cols);
+
+            dp[0, 0] = mrx[0, 0];
+
+            for (int j = 1; j < cols; ++j)
+                dp[0, j] = (dynamic)dp[0, j - 1] + (dynamic)mrx[0, j];
+
+            for (int i = 1; i < rows; ++i)
+                dp[i, 0] = (dynamic)dp[i - 1, 0] + (dynamic)mrx[i, 0];
+
+            for (int i = 1; i < rows; ++i)
+            {
+                for (int j = 1; j < cols; ++j)
+                {
+                    dynamic left = dp[i, j - 1];
+                    dynamic up = dp[i - 1, j];
+                    dynamic diagonal = dp[i - 1, j - 1];
+
+                    dynamic max = left;
+                    if (up.CompareTo(max) > 0) max = up;
+                    if (diagonal.CompareTo(max) > 0) max = diagonal;
+
+                    dp[i, j] = max + (dynamic)mrx[i, j];
+                }
+            }
+
+            return dp[rows - 1, cols - 1];
+        }
+
+        // Returns the minimum sum along the path from the upper left to the lower right corner of the matrix 'mrx', moving only to the right or down (no diagonal transitions)
+        public static T MinPathSumWithoutDiagonal<T>(Matrix<T> mrx) where T : IComparable<T>, INumber<T>
+        {
+            if (mrx is null) throw new ArgumentNullException("The matrix is null", nameof(mrx));
+            if (mrx.IsEmpty()) throw new ArgumentEmptyException("The matrix is empty", nameof(mrx));
+
+            int rows = mrx.Rows, cols = mrx.Cols;
+            var dp = new Matrix<T>(rows, cols);
+
+            dp[0, 0] = mrx[0, 0];
+
+            for (int j = 1; j < cols; ++j)
+                dp[0, j] = (dynamic)dp[0, j - 1] + (dynamic)mrx[0, j];
+
+            for (int i = 1; i < rows; ++i)
+                dp[i, 0] = (dynamic)dp[i - 1, 0] + (dynamic)mrx[i, 0];
+
+            for (int i = 1; i < rows; ++i)
+            {
+                for (int j = 1; j < cols; ++j)
+                {
+                    dynamic left = dp[i, j - 1];
+                    dynamic up = dp[i - 1, j];
+                    dynamic min = left.CompareTo(up) < 0 ? left : up;
+                    dp[i, j] = min + (dynamic)mrx[i, j];
+                }
+            }
+
+            return dp[rows - 1, cols - 1];
+        }
+        // Returns the minimum sum along the path from the top left to the bottom right corner of the matrix 'mrx', moving only to the right, down, and diagonally down
+        public static T MinPathSumWithDiagonal<T>(Matrix<T> mrx) where T : IComparable<T>, INumber<T>
+        {
+            if (mrx is null) throw new ArgumentNullException("The matrix is null", nameof(mrx));
+            if (mrx.IsEmpty()) throw new ArgumentEmptyException("The matrix is empty", nameof(mrx));
+
+            int rows = mrx.Rows, cols = mrx.Cols;
+            var dp = new Matrix<T>(rows, cols);
+
+            dp[0, 0] = mrx[0, 0];
+
+            for (int j = 1; j < cols; ++j)
+                dp[0, j] = (dynamic)dp[0, j - 1] + (dynamic)mrx[0, j];
+
+            for (int i = 1; i < rows; ++i)
+                dp[i, 0] = (dynamic)dp[i - 1, 0] + (dynamic)mrx[i, 0];
+
+            for (int i = 1; i < rows; ++i)
+            {
+                for (int j = 1; j < cols; ++j)
+                {
+                    dynamic left = dp[i, j - 1];
+                    dynamic up = dp[i - 1, j];
+                    dynamic diagonal = dp[i - 1, j - 1];
+
+                    dynamic min = left;
+                    if (up.CompareTo(min) < 0) min = up;
+                    if (diagonal.CompareTo(min) < 0) min = diagonal;
+
+                    dp[i, j] = min + (dynamic)mrx[i, j];
+                }
+            }
+
+            return dp[rows - 1, cols - 1];
+        }
+
+        // Returns the path with the maximum sum of values ​​from the upper left to the lower right corner of the matrix 'mrx', moving only to the right or down (no diagonal transitions)
+        public static List<(int, int)> MaxPathWithoutDiagonal<T>(Matrix<T> mrx) where T : IComparable<T>, INumber<T>
+        {
+            if (mrx is null) throw new ArgumentNullException("The matrix is null", nameof(mrx));
+            if (mrx.IsEmpty()) throw new ArgumentEmptyException("The matrix is empty", nameof(mrx));
+
+            int rows = mrx.Rows, cols = mrx.Cols;
+            var dp = new Matrix<T>(rows, cols);
+            var paths = new List<(int, int)>[rows, cols];
+
+            dp[0, 0] = mrx[0, 0];
+            paths[0, 0] = new List<(int, int)> { (0, 0) };
+
+            for (int j = 1; j < cols; ++j)
+            {
+                dp[0, j] = (dynamic)dp[0, j - 1] + (dynamic)mrx[0, j];
+                paths[0, j] = new List<(int, int)>(paths[0, j - 1]);
+                paths[0, j].Add((0, j));
+            }
+
+            for (int i = 1; i < rows; ++i)
+            {
+                dp[i, 0] = (dynamic)dp[i - 1, 0] + (dynamic)mrx[i, 0];
+                paths[i, 0] = new List<(int, int)>(paths[i - 1, 0]);
+                paths[i, 0].Add((i, 0));
+            }
+
+            for (int i = 1; i < rows; ++i)
+            {
+                for (int j = 1; j < cols; ++j)
+                {
+                    dynamic up = dp[i - 1, j];
+                    dynamic left = dp[i, j - 1];
+
+                    if (up.CompareTo(left) > 0)
+                    {
+                        dp[i, j] = up + (dynamic)mrx[i, j];
+                        paths[i, j] = new List<(int, int)>(paths[i - 1, j]);
+                    }
+                    else
+                    {
+                        dp[i, j] = left + (dynamic)mrx[i, j];
+                        paths[i, j] = new List<(int, int)>(paths[i, j - 1]);
+                    }
+                    paths[i, j].Add((i, j));
+                }
+            }
+
+            return paths[rows - 1, cols - 1];
+        }
+        // Returns the path with the maximum sum of values ​​from the top left to the bottom right corner of the matrix 'mrx', moving only to the right, down, and diagonally down
+        public static List<(int, int)> MaxPathWithDiagonal<T>(Matrix<T> mrx) where T : IComparable<T>, INumber<T>
+        {
+            if (mrx is null) throw new ArgumentNullException("The matrix is null", nameof(mrx));
+            if (mrx.IsEmpty()) throw new ArgumentEmptyException("The matrix is empty", nameof(mrx));
+
+            int rows = mrx.Rows, cols = mrx.Cols;
+            var dp = new Matrix<T>(rows, cols);
+            var paths = new List<(int, int)>[rows, cols];
+
+            dp[0, 0] = mrx[0, 0];
+            paths[0, 0] = new List<(int, int)> { (0, 0) };
+
+            for (int j = 1; j < cols; ++j)
+            {
+                dp[0, j] = (dynamic)dp[0, j - 1] + (dynamic)mrx[0, j];
+                paths[0, j] = new List<(int, int)>(paths[0, j - 1]);
+                paths[0, j].Add((0, j));
+            }
+
+            for (int i = 1; i < rows; ++i)
+            {
+                dp[i, 0] = (dynamic)dp[i - 1, 0] + (dynamic)mrx[i, 0];
+                paths[i, 0] = new List<(int, int)>(paths[i - 1, 0]);
+                paths[i, 0].Add((i, 0));
+            }
+
+            for (int i = 1; i < rows; ++i)
+            {
+                for (int j = 1; j < cols; ++j)
+                {
+                    dynamic up = dp[i - 1, j];
+                    dynamic left = dp[i, j - 1];
+                    dynamic diag = dp[i - 1, j - 1];
+
+                    dynamic max = up;
+                    List<(int, int)> maxPath = paths[i - 1, j];
+
+                    if (left.CompareTo(max) > 0)
+                    {
+                        max = left;
+                        maxPath = paths[i, j - 1];
+                    }
+                    if (diag.CompareTo(max) > 0)
+                    {
+                        max = diag;
+                        maxPath = paths[i - 1, j - 1];
+                    }
+
+                    dp[i, j] = max + (dynamic)mrx[i, j];
+                    paths[i, j] = new List<(int, int)>(maxPath);
+                    paths[i, j].Add((i, j));
+                }
+            }
+
+            return paths[rows - 1, cols - 1];
+        }
+
+        // Returns the path with the minimum sum of values ​​from the upper left to the lower right corner of the matrix 'mrx', moving only to the right or down (no diagonal transitions)
+        public static List<(int, int)> MinPathWithoutDiagonal<T>(Matrix<T> mrx) where T : IComparable<T>, INumber<T>
+        {
+            if (mrx is null) throw new ArgumentNullException("The matrix is null", nameof(mrx));
+            if (mrx.IsEmpty()) throw new ArgumentEmptyException("The matrix is empty", nameof(mrx));
+
+            int rows = mrx.Rows, cols = mrx.Cols;
+            var dp = new Matrix<T>(rows, cols);
+            var paths = new List<(int, int)>[rows, cols];
+
+            dp[0, 0] = mrx[0, 0];
+            paths[0, 0] = new List<(int, int)> { (0, 0) };
+
+            for (int j = 1; j < cols; ++j)
+            {
+                dp[0, j] = (dynamic)dp[0, j - 1] + (dynamic)mrx[0, j];
+                paths[0, j] = new List<(int, int)>(paths[0, j - 1]);
+                paths[0, j].Add((0, j));
+            }
+
+            for (int i = 1; i < rows; ++i)
+            {
+                dp[i, 0] = (dynamic)dp[i - 1, 0] + (dynamic)mrx[i, 0];
+                paths[i, 0] = new List<(int, int)>(paths[i - 1, 0]);
+                paths[i, 0].Add((i, 0));
+            }
+
+            for (int i = 1; i < rows; ++i)
+            {
+                for (int j = 1; j < cols; ++j)
+                {
+                    dynamic up = dp[i - 1, j];
+                    dynamic left = dp[i, j - 1];
+
+                    if (up.CompareTo(left) < 0)
+                    {
+                        dp[i, j] = up + (dynamic)mrx[i, j];
+                        paths[i, j] = new List<(int, int)>(paths[i - 1, j]);
+                    }
+                    else
+                    {
+                        dp[i, j] = left + (dynamic)mrx[i, j];
+                        paths[i, j] = new List<(int, int)>(paths[i, j - 1]);
+                    }
+                    paths[i, j].Add((i, j));
+                }
+            }
+
+            return paths[rows - 1, cols - 1];
+        }
+        // Returns the path with the minimum sum of values ​​from the top left to the bottom right corner of the matrix 'mrx', moving only to the right, down, and diagonally down
+        public static List<(int, int)> MinPathWithDiagonal<T>(Matrix<T> mrx) where T : IComparable<T>, INumber<T>
+        {
+            if (mrx is null) throw new ArgumentNullException("The matrix is null", nameof(mrx));
+            if (mrx.IsEmpty()) throw new ArgumentEmptyException("The matrix is empty", nameof(mrx));
+
+            int rows = mrx.Rows, cols = mrx.Cols;
+            var dp = new Matrix<T>(rows, cols);
+            var paths = new List<(int, int)>[rows, cols];
+
+            dp[0, 0] = mrx[0, 0];
+            paths[0, 0] = new List<(int, int)> { (0, 0) };
+
+            for (int j = 1; j < cols; ++j)
+            {
+                dp[0, j] = (dynamic)dp[0, j - 1] + (dynamic)mrx[0, j];
+                paths[0, j] = new List<(int, int)>(paths[0, j - 1]);
+                paths[0, j].Add((0, j));
+            }
+
+            for (int i = 1; i < rows; ++i)
+            {
+                dp[i, 0] = (dynamic)dp[i - 1, 0] + (dynamic)mrx[i, 0];
+                paths[i, 0] = new List<(int, int)>(paths[i - 1, 0]);
+                paths[i, 0].Add((i, 0));
+            }
+
+            for (int i = 1; i < rows; ++i)
+            {
+                for (int j = 1; j < cols; ++j)
+                {
+                    dynamic up = dp[i - 1, j];
+                    dynamic left = dp[i, j - 1];
+                    dynamic diag = dp[i - 1, j - 1];
+
+                    dynamic min = up;
+                    List<(int, int)> minPath = paths[i - 1, j];
+
+                    if (left.CompareTo(min) < 0)
+                    {
+                        min = left;
+                        minPath = paths[i, j - 1];
+                    }
+                    if (diag.CompareTo(min) < 0)
+                    {
+                        min = diag;
+                        minPath = paths[i - 1, j - 1];
+                    }
+
+                    dp[i, j] = min + (dynamic)mrx[i, j];
+                    paths[i, j] = new List<(int, int)>(minPath);
+                    paths[i, j].Add((i, j));
+                }
+            }
+
+            return paths[rows - 1, cols - 1];
+        }
+
+
+        private static List<(int, int)> ReconstructCycle((int, int) start, (int, int) end, (int, int)[,] parent)
+        {
+            var pathStart = new List<(int, int)>();
+            var pathEnd = new List<(int, int)>();
+
+            for (var cur = start; cur.Item1 != -1; cur = parent[cur.Item1, cur.Item2])
+                pathStart.Add(cur);
+            for (var cur = end; cur.Item1 != -1; cur = parent[cur.Item1, cur.Item2])
+                pathEnd.Add(cur);
+
+            pathStart.Reverse();
+            pathEnd.Reverse();
+
+            int lcaIndex = 0;
+            int minLen = Math.Min(pathStart.Count, pathEnd.Count);
+
+            for (int i = 0; i < minLen; ++i)
+            {
+                if (!pathStart[i].Equals(pathEnd[i])) break;
+
+                lcaIndex = i;
+            }
+
+            var cycle = new List<(int, int)>();
+
+            for (int i = pathStart.Count - 1; i > lcaIndex; --i)
+                cycle.Add(pathStart[i]);
+
+            for (int i = lcaIndex; i < pathEnd.Count; ++i)
+                cycle.Add(pathEnd[i]);
+
+            cycle.Add(cycle[0]);
+
+            for (int i = 0; i < cycle.Count - 1; ++i)
+            {
+                var a = cycle[i];
+                var b = cycle[i + 1];
+                int dx = Math.Abs(a.Item1 - b.Item1), dy = Math.Abs(a.Item2 - b.Item2);
+
+                if (!((dx == 1 && dy == 0) || (dx == 0 && dy == 1))) return new List<(int, int)>();
+            }
+
+            return cycle;
         }
     }
 }
