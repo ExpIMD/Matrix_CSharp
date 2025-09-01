@@ -429,7 +429,6 @@ namespace IMD
             }
         }
 
-
         /// Conversion methods
 
         // Returns a matrix obtained from a rectangular full container of containers 'ccs'
@@ -483,7 +482,7 @@ namespace IMD
 
         // Math methods
 
-        // Возвращает подматрицу, полученную из матрицы 'mrx' путём исключения строки с индексом excludedRow и столбца с индексом excludedCol
+        // Returns a submatrix obtained from the matrix 'mrx' by excluding the row with index 'excludedRow' and the column with index 'excludedCol'
         public static Matrix<T> GetSubMatrix<T>(Matrix<T> mrx, int excludedRow, int excludedCol) where T : IComparable<T>, INumber<T>
         {
             if (mrx is null) throw new ArgumentNullException("The matrix is null", nameof(mrx));
@@ -515,7 +514,7 @@ namespace IMD
 
             return subMatrix;
         }
-        // Возвращает определитель квадратной матрицы 'mrx'
+        // Returns the determinant of the square matrix 'mrx'
         public static T Determinant<T>(Matrix<T> mrx) where T : IComparable<T>, INumber<T>
         {
             if (mrx is null) throw new ArgumentNullException("The matrix is null", nameof(mrx));
@@ -544,18 +543,17 @@ namespace IMD
             return result;
 
         }
-        // Возвращает минор в квадратной матрице 'mrx' в строке с индексом row и в столбце с индексом col
+        // Returns the minor in the square matrix 'mrx' at the row with index 'row' and at the column with index 'col'
         public static T Minor<T>(Matrix<T> mrx, int row, int col) where T : IComparable<T>, INumber<T>
         {
             return Determinant(GetSubMatrix(mrx, row, col));
         }
-        // Возвращает алгебраическое дополнение в квадратной матрице 'mrx' в строке с индексом row и в столбце с индексом col
+        // Returns the algebraic complement of the square matrix 'mrx' at the row with index 'row' and at the column with index 'col'
         public static T Cofactor<T>(Matrix<T> mrx, int row, int col) where T : IComparable<T>, INumber<T>
         {
             T result = Minor(mrx, row, col);
             return ((row + col) % 2 == 0) ? result : -result;
         }
-
 
         // Returns the Frobenius norm of the matrix 'mrx'
         public static T FrobeniusNorm<T>(Matrix<T> mrx) where T : IComparable<T>, INumber<T>
@@ -630,8 +628,6 @@ namespace IMD
 
             return true;
         }
-
-
 
         /// Operation methods
 
