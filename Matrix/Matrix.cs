@@ -1,5 +1,4 @@
 ﻿using System.Collections;
-using System.IO;
 using System.Numerics;
 
 namespace IMD
@@ -280,6 +279,75 @@ namespace IMD
         }
     }
 
+    // The class describing the solution of a linear linear equation using the Gauss method
+    public class GaussSolution<T>
+    {
+        private bool __hasSolution = false;
+        private bool __hasUniqueSolution = false;
+
+        private List<T> __particularSolution = new List<T>(); // Private solution
+        private List<string> __expressions = new List<string>(); // Formulas for each variable
+
+        // Printing the solution to the textwritter 'tw' without moving to a new line
+        public void Print(TextWriter tw)
+        {
+            if (tw is null) throw new ArgumentNullException("The textwritter is null", nameof(tw));
+
+            if (!this.__hasSolution)
+            {
+                tw.WriteLine("The system doesn't have any solution");
+                return;
+            }
+
+            if (this.__hasUniqueSolution)
+            {
+                tw.WriteLine("The system has only one solution");
+                tw.Write("Solution: (");
+
+                for (int i = 0; i < this.__particularSolution.Count; ++i)
+                {
+                    tw.Write(this.__particularSolution[i]);
+
+                    if (i < this.__particularSolution.Count - 1) tw.Write(", ");
+                }
+
+                tw.WriteLine(")");
+            }
+            else
+            {
+                tw.WriteLine("The system has infinitely number of solutions");
+                tw.Write("Particular solution: (");
+
+                for (int i = 0; i < this.__particularSolution.Count; ++i)
+                {
+                    tw.Write(this.__particularSolution[i]);
+
+                    if (i < this.__particularSolution.Count - 1)  tw.Write(", ");
+                }
+
+                tw.WriteLine(")");
+                tw.WriteLine("General solution:");
+
+                foreach (var expr in this.__expressions)
+                    tw.WriteLine(expr);
+            }
+        }
+        // Printing the solution to the textwritter 'tw' with moving to a new line
+        public void PrintLine(TextWriter stream)
+        {
+            Print(stream);
+            stream.WriteLine();
+        }
+        // Installation solution
+        public void SetSolution(bool hasSolution, bool hasUniqueSolution, List<T> particularSolution, List<string> expressions)
+        {
+            this.__hasSolution = hasSolution;
+            this.__hasUniqueSolution = hasUniqueSolution;
+            this.__particularSolution = particularSolution;
+            this.__expressions = expressions;
+        }
+    }
+
     /// <summary>
     /// The static class that includes methods for numeric matrices
     /// </summary>
@@ -440,7 +508,7 @@ namespace IMD
 
         /// Conversion methods
 
-        // Returns a matrix obtained from a rectangular full container of containers 'ccs'
+        // Returns a matrix obtained from the rectangular full container of containers 'ccs'
         public static Matrix<T> ToMatrix<T>(IEnumerable<IEnumerable<T>> ccs) where T : IComparable<T>, INumber<T>
         {
             if (ccs is null) throw new ArgumentNullException("The container of containers is null", nameof(ccs));
@@ -622,7 +690,7 @@ namespace IMD
             return result;
         }
 
-        // Checks if matrix 'mrx' is a Toeplitz matrix
+        // Checks if the matrix 'mrx' is a Toeplitz matrix
         public static bool IsToeplitzMatrix<T>(Matrix<T> mrx) where T : IComparable<T>, INumber<T>
         {
             if (mrx is null) throw new ArgumentNullException("The matrix is null", nameof(mrx));
@@ -651,7 +719,7 @@ namespace IMD
 
             return result;
         }
-        // Transpose of square matrix 'mrx'
+        // Transpose of the square matrix 'mrx'
         public static void Transpose<T>(Matrix<T> mrx) where T : IComparable<T>, INumber<T>
         {
             if (mrx is null) throw new ArgumentNullException("The matrix is null", nameof(mrx));
@@ -671,7 +739,7 @@ namespace IMD
             }
         }
 
-        // Vertical reflection of matrix 'mrx'
+        // Vertical reflection of the matrix 'mrx'
         public static void FlipVertical<T>(Matrix<T> mrx) where T : IComparable<T>, INumber<T>
         {
             if (mrx is null) throw new ArgumentNullException("The matrix is null", nameof(mrx));
@@ -689,7 +757,7 @@ namespace IMD
                 }
             }
         }
-        // Horizontal reflection of matrix 'mrx'
+        // Horizontal reflection of the matrix 'mrx'
         public static void FlipHorizontal<T>(Matrix<T> mrx) where T : IComparable<T>, INumber<T>
         {
             if (mrx is null) throw new ArgumentNullException("The matrix is null", nameof(mrx));
@@ -733,8 +801,8 @@ namespace IMD
 
             return result;
         }
-        // Returns a matrix of size rows x cols filled with elements from list 'lst' row by row
-        public static Matrix<T> ConstructMatrix<T>(IList<T> lst, int rows, int cols) where T : IComparable<T>, INumber<T>
+        // Returns a matrix of size 'rows' x 'cols' filled with elements from the list 'lst' row by row
+        public static Matrix<T> ConstructMatrix<T>(List<T> lst, int rows, int cols) where T : IComparable<T>, INumber<T>
         {
             if (lst is null) throw new ArgumentNullException("The list is null", nameof(lst));
             if (lst.Count == 0) throw new ArgumentException("The list is empty", nameof(lst));
@@ -773,7 +841,7 @@ namespace IMD
 
             return result;
         }
-        // Rotate square matrix 'mrx' 90 degrees clockwise
+        // Rotate square the matrix 'mrx' 90 degrees clockwise
         public static void ClockwiseRotate<T>(Matrix<T> mrx) where T : IComparable<T>, INumber<T>
         {
             if (mrx is null) throw new ArgumentNullException("The matrix is null", nameof(mrx));
@@ -816,7 +884,7 @@ namespace IMD
 
             return result;
         }
-        // Rotate square matrix 'mrx' 90 degrees counterclockwise
+        // Rotate square the matrix 'mrx' 90 degrees counterclockwise
         public static void CounterclockwiseRotate<T>(Matrix<T> mrx) where T : IComparable<T>, INumber<T>
         {
             if (mrx is null) throw new ArgumentNullException("The matrix is null", nameof(mrx));
@@ -838,12 +906,12 @@ namespace IMD
             }
         }
 
-        // Checks for cycle in matrix 'mrx' using DFS
+        // Checks for cycle in the matrix 'mrx' using DFS
         public static bool DFSCheckCycle<T>(Matrix<T> mrx) where T : IComparable<T>, INumber<T>
         {
             if (mrx is null) throw new ArgumentNullException("The matrix is null", nameof(mrx));
             if (mrx.IsEmpty()) throw new ArgumentEmptyException("The matrix is empty", nameof(mrx));
-            
+
             if (mrx.Size == 1) return true;
 
             int rows = mrx.Rows, cols = mrx.Cols;
@@ -897,7 +965,7 @@ namespace IMD
 
             return false;
         }
-        // Checks for cycle in matrix 'mrx' using BFS
+        // Checks for cycle in the matrix 'mrx' using BFS
         public static bool BFSCheckCycle<T>(Matrix<T> mrx) where T : IComparable<T>, INumber<T>
         {
             if (mrx is null) throw new ArgumentNullException("The matrix is null", nameof(mrx));
@@ -958,7 +1026,7 @@ namespace IMD
             return false;
         }
 
-        // Returns the cycle in matrix mrx using DFS
+        // Returns the cycle in the matrix 'mrx' using DFS
         public static List<(int, int)> DFSGetCycle<T>(Matrix<T> mrx) where T : IComparable<T>, INumber<T>
         {
             if (mrx is null) throw new ArgumentNullException("The matrix is null", nameof(mrx));
@@ -1016,7 +1084,7 @@ namespace IMD
 
             return new List<(int, int)>();
         }
-        // Returns the cycle in matrix mrx using BFS
+        // Returns the cycle in the matrix 'mrx' using BFS
         public static List<(int, int)> BFSGetCycle<T>(Matrix<T> mrx) where T : IComparable<T>, INumber<T>
         {
             if (mrx is null) throw new ArgumentNullException("The matrix is null", nameof(mrx));
@@ -1083,7 +1151,7 @@ namespace IMD
             return new List<(int, int)>();
         }
 
-        // Returns the maximum sum along the path from the upper left to the lower right corner of matrix 'mrx', moving only to the right or down (no diagonal transitions)
+        // Returns the maximum sum along the path from the upper left to the lower right corner of the matrix 'mrx', moving only to the right or down (no diagonal transitions)
         public static T MaxPathSumWithoutDiagonal<T>(Matrix<T> mrx) where T : IComparable<T>, INumber<T>
         {
             if (mrx is null) throw new ArgumentNullException("The matrix is null", nameof(mrx));
@@ -1114,7 +1182,7 @@ namespace IMD
 
             return dp[rows - 1, cols - 1];
         }
-        // Returns the maximum sum along the path from the upper left to the lower right corner of matrix 'mrx', moving only to the right, down, and diagonally down
+        // Returns the maximum sum along the path from the upper left to the lower right corner of the matrix 'mrx', moving only to the right, down, and diagonally down
         public static T MaxPathSumWithDiagonal<T>(Matrix<T> mrx) where T : IComparable<T>, INumber<T>
         {
             if (mrx is null) throw new ArgumentNullException("The matrix is null", nameof(mrx));
@@ -1458,7 +1526,7 @@ namespace IMD
                     if (nr >= 0 && nr < rows && nc >= 0 && nc < cols)
                     {
                         bool condition = isSeverity ? mrx[nr, nc].CompareTo(mrx[r, c]) > 0 : mrx[nr, nc].CompareTo(mrx[r, c]) >= 0;
-                        
+
                         if (condition)
                         {
                             int len = 1 + DFS(nr, nc);
@@ -1512,7 +1580,7 @@ namespace IMD
                     if (nr >= 0 && nr < rows && nc >= 0 && nc < cols)
                     {
                         bool condition = isSeverity ? mrx[nr, nc].CompareTo(mrx[r, c]) < 0 : mrx[nr, nc].CompareTo(mrx[r, c]) <= 0;
-                        
+
                         if (condition)
                         {
                             int len = 1 + DFS(nr, nc);
@@ -1739,7 +1807,7 @@ namespace IMD
                     if (nr >= 0 && nr < rows && nc >= 0 && nc < cols)
                     {
                         bool condition = isSeverity ? mrx[nr, nc].CompareTo(mrx[r, c]) < 0 : mrx[nr, nc].CompareTo(mrx[r, c]) <= 0;
-                        
+
                         if (condition) count += DFS(nr, nc);
                     }
                 }
