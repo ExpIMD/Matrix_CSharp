@@ -7,20 +7,20 @@
             Console.WriteLine("Hello, world!");
             foreach (string arg in args) Console.WriteLine(arg);
 
-            List<List<short>> llst = new List<List<short>>()
-            {
-                new List<short> { 1, 0, 7 },
-                new List<short> {2, 0, 6 },
-                new List<short>{3, 4, 5 },
-                new List<short>{0, 3, 0 },
-                new List<short>{9, 0, 20 }
-            };
+            Matrix<double> A = new Matrix<double>(new double[,] {
+                {1, 0, 3 },
+                {9, -1, 2 },
+                {2, 1, 0 }});
+            Matrix<double> b = new Matrix<double>(new double[,] {
+                {1 },
+                {0 },
+                {-9 }});
+            Matrix<double> x = new Matrix<double>(new double[,] {
+                { 0 },
+                {-9 },
+                {  0} });
 
-            Matrix<short> a = MatrixMethods.ToMatrix(llst);
-            Console.WriteLine("Max sum: " + MatrixMethods.GetMaxGold(a));
-
-            foreach (var x in MatrixMethods.GetMaxGoldPath(a))
-                Console.Write(x + "-> ");
+            MatrixMethods.PrintLine(A * MatrixMethods.GetGaussSolution(A, b).GetSolution(), Console.Out);
 
             Console.ReadLine();
         }

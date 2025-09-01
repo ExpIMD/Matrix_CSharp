@@ -1,17 +1,20 @@
 ﻿using System.Collections;
 using System.Numerics;
+using System.Text;
 
 namespace IMD
 {
     public class ArgumentEmptyException : ArgumentException
     {
         public ArgumentEmptyException(string message, string paramName) : base(message, paramName) { }
-
     }
     public class ArgumentWrongSizeException : ArgumentException
     {
         public ArgumentWrongSizeException(string message, string paramName) : base(message, paramName) { }
-
+    }
+    public class ArgumentNoSolutionException : ArgumentException
+    {
+        public ArgumentNoSolutionException(string message) : base(message) { }
     }
 
     /// <summary>
@@ -108,7 +111,7 @@ namespace IMD
 
             if (cols1 != rows2) throw new ArgumentWrongSizeException("The matrices have wrong sizes", nameof(a) + ", " + nameof(b));
 
-            Matrix<T> result = new Matrix<T>(rows1, cols1);
+            Matrix<T> result = new Matrix<T>(rows1, cols2);
 
             for (int i = 0; i < rows1; ++i)
             {
@@ -285,8 +288,10 @@ namespace IMD
         private bool __hasSolution = false;
         private bool __hasUniqueSolution = false;
 
-        private List<T> __particularSolution = new List<T>(); // Private solution
+        private List<double> __particularSolution = new List<double>(); // Private solution
         private List<string> __expressions = new List<string>(); // Formulas for each variable
+
+        public GaussSolution() { }
 
         // Printing the solution to the textwritter 'tw' without moving to a new line
         public void Print(TextWriter tw)
@@ -339,12 +344,17 @@ namespace IMD
             stream.WriteLine();
         }
         // Installation solution
-        public void SetSolution(bool hasSolution, bool hasUniqueSolution, List<T> particularSolution, List<string> expressions)
+        public void SetSolution(bool hasSolution, bool hasUniqueSolution, List<double> particularSolution, List<string> expressions)
         {
             this.__hasSolution = hasSolution;
             this.__hasUniqueSolution = hasUniqueSolution;
             this.__particularSolution = particularSolution;
             this.__expressions = expressions;
+        }
+        public Matrix<double> GetSolution()
+        {
+            if (!this.__hasSolution) throw new ArgumentNoSolutionException("The system doesn't have any solution");
+            return new Matrix<double>(this.__particularSolution.Count, 1, (i, j) => this.__particularSolution[i]);
         }
     }
 
@@ -704,6 +714,139 @@ namespace IMD
                         return false;
 
             return true;
+        }
+
+        // Returns the solution of the linear equation of the form 'Ax=b'
+        public static GaussSolution<T> GetGaussSolution<T>(Matrix<T> A, Matrix<T> b) where T : IComparable<T>, INumber<T>
+        {
+            if (A is null) throw new ArgumentNullException("The matrix is null", nameof(A));
+            if (b is null)  throw new ArgumentNullException("The matrix is null", nameof(b));
+            if (A.IsEmpty()) throw new ArgumentEmptyException("The matrix is empty", nameof(A));
+            if (b.IsEmpty()) throw new ArgumentEmptyException("The matrix is empty", nameof(b));
+
+            int rows = A.Rows, cols = A.Cols;
+
+            if (b.Rows != rows || b.Cols != 1) throw new ArgumentWrongSizeException("The dimensions of matrix 'A' and matrix 'b' are not consistent", nameof(A) + ", " + nameof(b));
+
+            var result = new GaussSolution<T>();
+            bool hasSolution = false, hasUniqueSolution = false;
+            var aug = new Matrix<double>(rows, cols + 1); // The matrix of the form [A|b]
+
+            for (int i = 0; i < rows; ++i)
+            {
+                for (int j = 0; j < cols; ++j)
+                    aug[i, j] = (dynamic)A[i, j];
+
+                aug[i, cols] = (dynamic)b[i, 0];
+            }
+
+            int rank = 0;
+            var pivotCols = new List<int>(); // List of columns with pivots
+            var freeCols = new List<int>();  // List of free columns (without pivot)
+            var rowPivot = new int[cols]; // For each column, the index of the row with the pivot (-1 if none)
+
+            for (int i = 0; i < cols; ++i)
+                rowPivot[i] = -1;
+
+            for (int col = 0; col < cols && rank < rows; ++col)
+            {
+                // Finding the row with the largest element in the current column (selecting the main element)
+
+                int pivotRow = rank;
+                double maxAbs = Math.Abs((dynamic)aug[pivotRow, col]);
+
+                for (int i = rank + 1; i < rows; ++i)
+                {
+                    double value = Math.Abs((dynamic)aug[i, col]);
+
+                    if (value > maxAbs)
+                    {
+                        maxAbs = value;
+                        pivotRow = i;
+                    }
+                }
+
+                if (maxAbs < IMD.Constants.EPSILON) continue; // If the maximum element is too small (almost zero), move to the next column
+
+                for (int j = col; j <= cols; ++j) // Rearrange lines to move pivot to current position
+                {
+                    var tmp = aug[rank, j];
+                    aug[rank, j] = aug[pivotRow, j];
+                    aug[pivotRow, j] = tmp;
+                }
+
+                pivotCols.Add(col);
+                rowPivot[col] = rank;
+                double pivotValue = aug[rank, col];
+
+                for (int j = col; j <= cols; ++j) // Normalizing the row
+                    aug[rank, j] = aug[rank, j] / pivotValue;
+
+                for (int i = 0; i < rows; ++i) // Zeroing out the elements in the current column in all other rows
+                {
+                    if (i != rank)
+                    {
+                        double factor = aug[i, col];
+
+                        if (Math.Abs((dynamic)factor) > IMD.Constants.EPSILON)
+                            for (int j = col; j <= cols; ++j)
+                                aug[i, j] -= aug[rank, j] * factor;
+                    }
+                }
+
+                ++rank;
+            }
+
+            for (int col = 0; col < cols; ++col)
+                if (rowPivot[col] == -1)
+                    freeCols.Add(col);
+
+            for (int i = rank; i < rows; ++i) // Checking the system for incompatibility
+            {
+                if (Math.Abs((dynamic)aug[i, cols]) > IMD.Constants.EPSILON) // No solution
+                {
+                    result.SetSolution(false, false, new List<double>(), new List<string>()); 
+
+                    return result;
+                }
+            }
+
+            // Build expressions for pivot variables
+
+            hasSolution = true;
+            hasUniqueSolution = (freeCols.Count == 0);
+
+            var particularSolution = new List<double>(new double[cols]);
+            foreach (var col in pivotCols)
+                particularSolution[col] = aug[rowPivot[col], cols];
+
+            var expressions = new List<string>(new string[cols]);
+
+            foreach (var col in pivotCols)
+            {
+                var sb = new StringBuilder();
+                sb.Append($"x{col + 1} = {particularSolution[col]}");
+
+                foreach (var freeCol in freeCols)
+                {
+                    var coefficient = aug[rowPivot[col], freeCol];
+
+                    if (Math.Abs((dynamic)coefficient) > IMD.Constants.EPSILON)
+                    {
+                        if (coefficient < IMD.Constants.EPSILON) sb.Append($" + {-coefficient}*t{freeCol + 1}");
+                        else sb.Append($" - {coefficient}*t{freeCol + 1}");
+                    }
+                }
+
+                expressions[col] = sb.ToString();
+            }
+
+            foreach (var freeCol in freeCols)
+                expressions[freeCol] = $"x{freeCol + 1} = t{freeCol + 1}";
+
+            result.SetSolution(hasSolution, hasUniqueSolution, particularSolution, expressions);
+
+            return result;
         }
 
         /// Operation methods
