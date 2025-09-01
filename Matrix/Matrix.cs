@@ -16,7 +16,10 @@ namespace IMD
     {
         public ArgumentNoSolutionException(string message) : base(message) { }
     }
-
+    public class ArgumentSingularMatrixException : ArgumentException
+    {
+        public ArgumentSingularMatrixException(string message, string paramName) : base(message, paramName) { }
+    }
     /// <summary>
     /// The class of numerical matrices
     /// </summary>
@@ -601,6 +604,7 @@ namespace IMD
 
             return subMatrix;
         }
+
         // Returns the determinant of the square matrix 'mrx'
         public static T Determinant<T>(Matrix<T> mrx) where T : IComparable<T>, INumber<T>
         {
@@ -640,6 +644,58 @@ namespace IMD
         {
             T result = Minor(mrx, row, col);
             return ((row + col) % 2 == 0) ? result : -result;
+        }
+        // Returns the rank of the matrix 'mrx'
+        public static int Rank<T>(Matrix<T> mrx) where T : IComparable<T>, INumber<T>
+        {
+            if (mrx is null) throw new ArgumentNullException("The matrix is null", nameof(mrx));
+            if (mrx.IsEmpty()) throw new ArgumentEmptyException("The matrix is empty", nameof(mrx));
+
+            int rows = mrx.Rows, cols = mrx.Cols, result = 0;
+            Matrix<double> temp = new Matrix<double>(rows, cols);
+
+            for (int i = 0; i < rows; ++i)
+                for (int j = 0; j < cols; ++j)
+                    temp[i, j] = (dynamic)mrx[i, j];
+
+            for (int row = 0, col = 0; row < rows && col < cols; ++col)
+            {
+                int pivotRow = row;
+
+                while (pivotRow < rows && Math.Abs(temp[pivotRow, col]) < IMD.Constants.EPSILON) ++pivotRow; // Finding a non-zero element
+
+                if (pivotRow == rows) continue;
+
+                if (pivotRow != row) // We change the lines so that the main element is on the diagonal
+                {
+                    for (int j = col; j < cols; ++j)
+                    {
+                        var tempValue = temp[row, j];
+                        temp[row, j] = temp[pivotRow, j];
+                        temp[pivotRow, j] = tempValue;
+                    }
+                }
+
+                var pivot = temp[row, col];
+
+                if (Math.Abs(pivot) > IMD.Constants.EPSILON) // Normalizing the row
+                    for (int j = col; j < cols; ++j)
+                        temp[row, j] /= pivot;
+
+                for (int i = row + 1; i < rows; ++i) // Subtract the current row from the rows below
+                {
+                    double factor = temp[i, col];
+
+                    if (Math.Abs(factor) > IMD.Constants.EPSILON)
+                        for (int j = col; j < cols; ++j)
+                            temp[i, j] = temp[i, j] - factor * temp[row, j];
+                }
+
+                ++row;
+                ++result;
+            }
+
+            return result;
         }
 
         // Returns the Frobenius norm of the matrix 'mrx'
@@ -848,6 +904,96 @@ namespace IMD
 
             return result;
         }
+        // Checks the compatibility of SLU's of the form Ax=b
+        public static bool IsConsistent<T>(Matrix<T> A, Matrix<T> b) where T : IComparable<T>, INumber<T>
+        {
+            if (A is null) throw new ArgumentNullException("The matrix is null", nameof(A));
+            if (b is null) throw new ArgumentNullException("The matrix is null", nameof(b));
+            if (A.IsEmpty()) throw new ArgumentEmptyException("The matrix is empty", nameof(A));
+            if (b.IsEmpty()) throw new ArgumentEmptyException("The matrix is empty", nameof(b));
+
+            int rows = A.Rows, cols = A.Cols;
+
+            if (b.Rows != rows || b.Cols != 1) throw new ArgumentWrongSizeException("The matrix have wrong size", nameof(A) + ", " + nameof(b));
+
+            Matrix<T> aug = new Matrix<T>(rows, cols + 1);
+
+            for (int i = 0; i < rows; ++i)
+            {
+                for (int j = 0; j < cols; ++j)
+                    aug[i, j] = A[i, j];
+
+                aug[i, cols] = b[i, 0];
+            }
+
+            return Rank(aug) == Rank(A);
+        }
+
+        // Returns the inverse of the given matrix 'mrx'
+        public static Matrix<double> GetInverse<T>(Matrix<T> mrx) where T : IComparable<T>, INumber<T>
+        {
+            if (mrx is null) throw new ArgumentNullException("The matrix is null", nameof(mrx));
+            if (mrx.IsEmpty()) throw new ArgumentEmptyException("The matrix is empty", nameof(mrx));
+            if (!mrx.IsSquare()) throw new ArgumentWrongSizeException("The matrix isn't square", nameof(mrx));
+
+            int n = mrx.Rows;
+            var A = new Matrix<double>(n, n);
+            var result = Matrix<double>.Identity(n);
+
+            for (int i = 0; i < n; ++i)
+                for (int j = 0; j < n; ++j)
+                    A[i, j] = (dynamic)mrx[i, j];
+
+            for (int i = 0; i < n; ++i)
+            {
+                int pivot = i;
+
+                for (int r = i + 1; r < n; ++r)
+                    if (Math.Abs(A[r, i]) > Math.Abs(A[pivot, i]))
+                        pivot = r;
+
+                if (Math.Abs(A[pivot, i]) < IMD.Constants.EPSILON) throw new ArgumentSingularMatrixException("The matrix is singular", nameof(A));
+
+                if (pivot != i)
+                {
+                    for (int col = 0; col < n; ++col)
+                    {
+                        var tempA = A[i, col];
+                        A[i, col] = A[pivot, col];
+                        A[pivot, col] = tempA;
+
+                        var tempRes = result[i, col];
+                        result[i, col] = result[pivot, col];
+                        result[pivot, col] = tempRes;
+                    }
+                }
+
+                double pivotVal = A[i, i];
+
+                for (int col = 0; col < n; ++col)
+                {
+                    A[i, col] = (dynamic)A[i, col] / pivotVal;
+                    result[i, col] = (dynamic)result[i, col] / pivotVal;
+                }
+
+                for (int r = 0; r < n; ++r)
+                {
+                    if (r != i)
+                    {
+                        double factor = A[r, i];
+
+                        for (int col = 0; col < n; ++col)
+                        {
+                            A[r, col] -= factor * A[i, col];
+                            result[r, col] -= factor * result[i, col];
+                        }
+                    }
+                }
+            }
+
+            return result;
+        }
+
 
         /// Operation methods
 

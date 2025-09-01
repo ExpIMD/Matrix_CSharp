@@ -20,7 +20,11 @@
                 {-9 },
                 {  0} });
 
-            MatrixMethods.PrintLine(A * MatrixMethods.GetGaussSolution(A, b).GetSolution(), Console.Out);
+            var temp = IMD.MatrixMethods.GetInverse(A);
+
+            MatrixMethods.PrintLine(A * temp, Console.Out);
+
+            Console.WriteLine("Rank: " + IMD.MatrixMethods.Rank(A));
 
             Console.ReadLine();
         }
