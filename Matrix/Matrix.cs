@@ -518,6 +518,53 @@ namespace IMD
                 ++jStart;
             }
         }
+        // Traversing the matrix 'mrx' from the center in a spiral from the inside out, applying action 'A' to each element
+        public static void InnerSpiralOrder<T>(Matrix<T> mrx, Action<T> A) where T : IComparable<T>, INumber<T>
+        {
+            if (mrx is null) throw new ArgumentNullException("The matrix is null", nameof(mrx));
+            if (A is null) throw new ArgumentNullException("The action is null", nameof(A));
+
+            if (mrx.IsEmpty()) return;
+
+            int rows = mrx.Rows, cols = mrx.Cols;
+
+            int centerRow = (rows - 1) / 2, centerCol = (cols - 1) / 2;
+
+            A(mrx[centerRow, centerCol]);
+
+            int step = 1; // Step length in current direction
+            int dirIndex = 0;
+            int r = centerRow, c = centerCol;
+
+            int totalElements = rows * cols, count = 1;
+
+            while (count < totalElements)
+            {
+                // We go step by step twice in a row, changing direction
+                for (int repeat = 0; repeat < 2; ++repeat)
+                {
+                    int dr = IMD.Constants.DIRECTIONS_WITHOUT_DIAGONAL[dirIndex][0], dc = IMD.Constants.DIRECTIONS_WITHOUT_DIAGONAL[dirIndex][1];
+
+                    for (int i = 0; i < step; ++i)
+                    {
+                        r += dr;
+                        c += dc;
+
+                        if (r >= 0 && r < rows && c >= 0 && c < cols)
+                        {
+                            A(mrx[r, c]);
+                            ++count;
+
+                            if (count >= totalElements) return;
+                        }
+                    }
+
+                    dirIndex = (dirIndex + 1) % 4;
+                }
+
+                ++step;
+            }
+        }
 
         /// Conversion methods
 
@@ -994,6 +1041,158 @@ namespace IMD
             return result;
         }
 
+        // Returns the kernel of the matrix 'mrx'
+        public static List<Matrix<double>> GetKernel<T>(Matrix<T> mrx) where T : IComparable<T>, INumber<T>
+        {
+            if (mrx is null) throw new ArgumentNullException("The matrix is null", nameof(mrx));
+            if (mrx.IsEmpty()) throw new ArgumentEmptyException("The matrix is empty", nameof(mrx));
+
+            int rows = mrx.Rows, cols = mrx.Cols;
+            var A = new Matrix<double>(rows, cols);
+
+            for (int i = 0; i < rows; ++i)
+                for (int j = 0; j < cols; ++j)
+                    A[i, j] = Convert.ToDouble(mrx[i, j]);
+
+            int rank = 0;
+            var pivotCols = new List<int>();
+
+            for (int col = 0; col < cols; ++col)
+            {
+                int pivotRow = rank;
+                while (pivotRow < rows && Math.Abs(A[pivotRow, col]) < IMD.Constants.EPSILON) ++pivotRow;
+
+                if (pivotRow == rows) continue;
+
+                if (pivotRow != rank)
+                {
+                    for (int c = 0; c < cols; ++c)
+                    {
+                        var temp = A[rank, c];
+                        A[rank, c] = A[pivotRow, c];
+                        A[pivotRow, c] = temp;
+                    }
+                }
+
+                double pivotValue = A[rank, col];
+
+                for (int c = col; c < cols; ++c)
+                    A[rank, c] /= pivotValue;
+
+                for (int r = 0; r < rows; ++r)
+                {
+                    if (r != rank)
+                    {
+                        double factor = A[r, col];
+
+                        for (int c = col; c < cols; ++c)
+                            A[r, c] -= factor * A[rank, c];
+                    }
+                }
+
+                pivotCols.Add(col);
+                ++rank;
+
+                if (rank == rows) break;
+            }
+
+            var isPivot = new bool[cols];
+            foreach (var c in pivotCols)
+                isPivot[c] = true;
+
+            var freeVars = new List<int>();
+
+            for (int c = 0; c < cols; ++c)
+                if (!isPivot[c])
+                    freeVars.Add(c);
+
+            int kernelDim = freeVars.Count;
+            var kernelBasis = new List<Matrix<double>>();
+
+            for (int i = 0; i < kernelDim; ++i)
+            {
+                int freeVar = freeVars[i];
+                var vec = new Matrix<double>(cols, 1);
+
+                for (int j = 0; j < cols; ++j)
+                    vec[j, 0] = (j == freeVar) ? 1.0 : 0.0;
+
+                for (int j = pivotCols.Count - 1; j >= 0; --j)
+                {
+                    int pivotCol = pivotCols[j];
+                    double sum = 0;
+
+                    for (int c = pivotCol + 1; c < cols; ++c)
+                        sum += A[j, c] * vec[c, 0];
+
+                    vec[pivotCol, 0] = -sum;
+                }
+
+                kernelBasis.Add(vec);
+            }
+
+
+            return kernelBasis;
+        }
+        // Returns a list of coefficients of the characteristic polynomial of matrix 'mrx'
+        public static List<double> GetCharacteristicPolynomial<T>(Matrix<T> mrx) where T : IComparable<T>, INumber<T>
+        {
+            if (mrx is null) throw new ArgumentNullException("The matrix is null", nameof(mrx));
+            if (mrx.IsEmpty()) throw new ArgumentEmptyException("The matrix is empty", nameof(mrx));
+            if (!mrx.IsSquare()) throw new ArgumentWrongSizeException("The matrix isn't square", nameof(mrx));
+
+            int n = mrx.Rows;
+            var B = new Matrix<double>(n, n);
+            for (int i = 0; i < n; ++i)
+                for (int j = 0; j < n; ++j)
+                    B[i, j] = Convert.ToDouble(mrx[i, j]);
+
+            var traces = new List<double>(new double[n]);
+
+            for (int k = 1; k <= n; ++k)
+            {
+                double trace = 0.0;
+
+                if (k == 1)
+                {
+                    for (int i = 0; i < n; ++i)
+                        trace += B[i, i];
+                }
+                else
+                {
+                    var newB = new Matrix<double>(n, n);
+
+                    for (int i = 0; i < n; ++i)
+                        for (int j = 0; j < n; ++j)
+                        {
+                            double sum = 0;
+
+                            for (int l = 0; l < n; ++l)
+                                sum += Convert.ToDouble(mrx[i, l]) * B[l, j];
+
+                            newB[i, j] = (dynamic)sum;
+                        }
+                    B = newB;
+                    for (int i = 0; i < n; ++i)
+                        trace += B[i, i];
+                }
+                traces[k - 1] = trace;
+            }
+
+            var c = new List<double>(new double[n + 1]);
+            c[0] = 1.0;
+
+            for (int k = 1; k <= n; ++k)
+            {
+                double sum = 0.0;
+
+                for (int j = 1; j < k; ++j)
+                    sum += c[j] * traces[k - j - 1];
+                c[k] = -(traces[k - 1] + sum) / k;
+            }
+
+            return c;
+        }
 
         /// Operation methods
 
@@ -1448,7 +1647,7 @@ namespace IMD
 
             int rows = mrx.Rows, cols = mrx.Cols;
             var dp = new Matrix<T>(rows, cols);
-            dynamic zero = default(T);
+            dynamic zero = T.Zero;
 
             dp[0, 0] = mrx[0, 0];
 
@@ -1789,7 +1988,6 @@ namespace IMD
             return paths[rows - 1, cols - 1];
         }
 
-
         // Returns the length of the longest ascending path in the matrix 'mrx'. The severity of the inequality is determined by the 'isSeverity' argument
         public static int LongestIncreasingPathLength<T>(Matrix<T> mrx, bool isSeverity = true) where T : IComparable<T>, INumber<T>
         {
@@ -2116,7 +2314,14 @@ namespace IMD
             return result;
         }
 
-        // Returns the maximum amount of gold that can be collected in the matrix 'grid', starting from any positive cell and moving only in four directions (up, down, left, right) without diagonals
+        /// Special methods
+
+        // Returns the maximum amount of gold that can be collected in the matrix 'grid' under the following conditions:
+        // - Start from any cell containing gold (> 0).
+        // - Move only up, down, left, or right (no diagonals).
+        // - Do not visit the same cell more than once.
+        // - Never visit cells with 0 gold.
+        // - Collect all gold from each visited cell.
         public static T GetMaxGold<T>(Matrix<T> grid) where T : IComparable<T>, INumber<T>
         {
             if (grid is null) throw new ArgumentNullException("The matrix is null", nameof(grid));
@@ -2171,7 +2376,7 @@ namespace IMD
 
             return result;
         }
-        // Returns the maximum amount of gold that can be collected in the matrix 'grid' under the following conditions:
+        // Returns a path with the maximum amount of gold that can be collected in the matrix 'grid' under the following conditions:
         // - Start from any cell containing gold (> 0).
         // - Move only up, down, left, or right (no diagonals).
         // - Do not visit the same cell more than once.
@@ -2235,6 +2440,63 @@ namespace IMD
                 }
             }
 
+            return result;
+        }
+        // Given the server center map, represented as the integer matrix 'grid' of arbitrary size, where 1 means there is a server in that cell and 0 means there is no server.
+        // Two servers are considered communicating if they are in the same row or in the same column.
+        // Returns the number of servers communicating with each other.
+        public static int CountCommunicateServers<T>(Matrix<T> grid) where T : IComparable<T>, INumber<T>
+        {
+            if (grid is null) throw new ArgumentNullException("The matrix is null", nameof(grid));
+            if (grid.IsEmpty()) throw new ArgumentEmptyException("The matrix is empty", nameof(grid));
+
+            int rows = grid.Rows, cols = grid.Cols;
+            int[] rowCount = new int[rows], colCount = new int[cols];
+            int totalServers = 0, isolated = 0;
+
+            for (int i = 0; i < rows; ++i)
+            {
+                for (int j = 0; j < cols; ++j)
+                {
+                    if (grid[i, j] == T.One)
+                    {
+                        ++rowCount[i];
+                        ++colCount[j];
+                        ++totalServers;
+                    }
+                }
+            }
+
+            for (int i = 0; i < rows; ++i)
+                for (int j = 0; j < cols; ++j)
+                    if (grid[i, j] == T.One && rowCount[i] == 1 && colCount[j] == 1)
+                        ++isolated;
+
+            return totalServers - isolated;
+        }
+        // Given the matrix 'board' of symbols board, where 'X' denotes a part of a ship, '.' denotes an empty cell.
+        // Ships do not touch each other horizontally or vertically.
+        // Only the beginning of each ship is counted - the cell 'X' that does not have an 'X' above or to the left.
+        // Returns the number of warships on the board
+        public static int CountBattleships(Matrix<char> board)
+        {
+            if (board is null) throw new ArgumentNullException("The matrix is null", nameof(board));
+            if (board.IsEmpty()) throw new ArgumentEmptyException("The matrix is empty", nameof(board));
+
+            int result = 0, rows = board.Rows, cols = board.Cols;
+
+            for (int i = 0; i < rows; ++i)
+            {
+                for (int j = 0; j < cols; ++j)
+                {
+                    if (board[i, j] == 'X')
+                    {
+                        bool isStartOfShip = (i == 0 || board[i - 1, j] != 'X') && (j == 0 || board[i, j - 1] != 'X');
+
+                        if (isStartOfShip) ++result;
+                    }
+                }
+            }
             return result;
         }
 

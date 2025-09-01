@@ -8,25 +8,20 @@
             foreach (string arg in args) Console.WriteLine(arg);
 
             Matrix<double> A = new Matrix<double>(new double[,] {
-                {1, 0, 3 },
-                {9, -1, 2 },
-                {2, 1, 0 }});
+                {1, 2, 3, 4 },
+                {5, 6, 7, 8 },
+                {9, 10, 11, 12 },
+            {13, 14, 15, 16 } });
             Matrix<double> b = new Matrix<double>(new double[,] {
                 {1 },
                 {0 },
                 {-9 }});
             Matrix<double> x = new Matrix<double>(new double[,] {
                 { 0 },
-                {-9 },
-                {  0} });
+                { 1 },
+                { 0 }});
 
-            var temp = IMD.MatrixMethods.GetInverse(A);
-
-            MatrixMethods.PrintLine(A * temp, Console.Out);
-
-            Console.WriteLine("Rank: " + IMD.MatrixMethods.Rank(A));
-
-            Console.ReadLine();
+            IMD.MatrixMethods.InnerSpiralOrder(A, (x) => Console.Write(x + " "));
         }
     }
 }
