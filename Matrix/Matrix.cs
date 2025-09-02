@@ -29,19 +29,19 @@ namespace IMD
         private T[,] __data;
         public int Rows
         {
-            get => __data.GetLength(0);
+            get => this.__data.GetLength(0);
         }
         public int Cols
         {
-            get => __data.GetLength(1);
+            get => this.__data.GetLength(1);
         }
         public Tuple<int, int> Dimenshion
         {
-            get => new Tuple<int, int>(Rows, Cols);
+            get => new Tuple<int, int>(this.Rows, this.Cols);
         }
         public int Size
         {
-            get => Rows * Cols;
+            get => this.Rows * this.Cols;
         }
 
         public T this[int row, int col]
@@ -49,12 +49,12 @@ namespace IMD
             get
             {
                 CheckBounds(row, col);
-                return __data[row, col];
+                return this.__data[row, col];
             }
             set
             {
                 CheckBounds(row, col);
-                __data[row, col] = value;
+                this.__data[row, col] = value;
             }
         }
         public static Matrix<T> operator +(Matrix<T> a, Matrix<T> b)
@@ -120,7 +120,7 @@ namespace IMD
             {
                 for (int j = 0; j < cols2; ++j)
                 {
-                    T temp = default(T);
+                    T temp = T.Zero;
 
                     for (int k = 0; k < cols1; ++k)
                         temp += a[i, k] * b[k, j];
@@ -159,24 +159,25 @@ namespace IMD
             for (int i = 0; i < size; ++i)
                 for (int j = 0; j < size; ++j)
                     if (i == j)
-                        result[i, j] = (T)Convert.ChangeType(1, typeof(T));
+                        result[i, j] = T.One;
 
             return result;
         }
         public static Matrix<T> Zero(int rows, int cols)
         {
-            return new Matrix<T>(rows, cols, default(T));
+            return new Matrix<T>(rows, cols, T.Zero);
         }
 
         public Matrix(int rows, int cols, T value = default(T))
         {
             if (rows < 0) throw new ArgumentOutOfRangeException("The number of rows is negative", nameof(rows));
             if (cols < 0) throw new ArgumentOutOfRangeException("The number of rows is negative", nameof(cols));
-            __data = new T[rows, cols];
+
+            this.__data = new T[rows, cols];
 
             for (int i = 0; i < rows; ++i)
                 for (int j = 0; j < cols; ++j)
-                    __data[i, j] = value;
+                    this.__data[i, j] = value;
         }
         public Matrix(int rows, int cols, Func<int, int, T> F)
         {
@@ -184,57 +185,57 @@ namespace IMD
             if (cols < 0) throw new ArgumentOutOfRangeException("The number of rows is negative", nameof(cols));
             if (F is null) throw new ArgumentNullException("The function is null", nameof(F));
 
-            __data = new T[rows, cols];
+            this.__data = new T[rows, cols];
 
             for (int i = 0; i < rows; ++i)
                 for (int j = 0; j < cols; ++j)
-                    __data[i, j] = F(i, j);
+                    this.__data[i, j] = F(i, j);
         }
         public Matrix(T[,] data)
         {
             if (data is null) throw new ArgumentNullException("The data is null", nameof(data));
 
             int rows = data.GetLength(0), cols = data.GetLength(1);
-            __data = new T[rows, cols];
+            this.__data = new T[rows, cols];
 
             for (int i = 0; i < rows; ++i)
                 for (int j = 0; j < cols; ++j)
-                    __data[i, j] = data[i, j];
+                    this.__data[i, j] = data[i, j];
         }
         public Matrix(Matrix<T> other)
         {
             if (other is null) throw new ArgumentNullException("The matrix is null", nameof(other));
 
             int rows = other.Rows, cols = other.Cols;
-            __data = new T[rows, cols];
+            this.__data = new T[rows, cols];
 
             for (int i = 0; i < rows; ++i)
                 for (int j = 0; j < cols; ++j)
-                    __data[i, j] = other[i, j];
+                    this.__data[i, j] = other[i, j];
         }
 
         public bool IsEmpty()
         {
-            return __data is null;
+            return this.__data is null;
         }
         public bool IsSquare()
         {
             if (IsEmpty()) return false;
-            return Rows == Cols;
+            return this.Rows == this.Cols;
         }
         public int Count()
         {
-            return Size;
+            return this.Size;
         }
 
         public object Clone()
         {
-            int rows = Rows, cols = Cols;
+            int rows = this.Rows, cols = this.Cols;
             Matrix<T> result = new Matrix<T>(rows, cols);
 
             for (int i = 0; i < rows; ++i)
                 for (int j = 0; j < cols; ++j)
-                    result[i, j] = __data[i, j];
+                    result[i, j] = this.__data[i, j];
 
             return result;
         }
@@ -244,34 +245,34 @@ namespace IMD
             if (ReferenceEquals(this, obj)) return true;
             if (obj is not Matrix<T> temp) return false;
 
-            int rows1 = Rows, cols1 = Cols, rows2 = temp.Rows, cols2 = temp.Cols;
+            int rows1 = this.Rows, cols1 = this.Cols, rows2 = temp.Rows, cols2 = temp.Cols;
 
             if (rows1 != rows2 || cols1 != cols2) return false;
 
             for (int i = 0; i < rows1; ++i)
                 for (int j = 0; j < cols1; ++j)
-                    if (!EqualityComparer<T>.Default.Equals(__data[i, j], temp.__data[i, j]))
+                    if (!EqualityComparer<T>.Default.Equals(this.__data[i, j], temp.__data[i, j]))
                         return false;
 
             return true;
         }
         public override int GetHashCode()
         {
-            int result = 17, rows = Rows, cols = Cols;
+            int result = 17, rows = this.Rows, cols = this.Cols;
 
             for (int i = 0; i < rows; ++i)
                 for (int j = 0; j < cols; ++j)
-                    result = result * 31 + EqualityComparer<T>.Default.GetHashCode(__data[i, j]);
+                    result = result * 31 + EqualityComparer<T>.Default.GetHashCode(this.__data[i, j]);
 
             return result;
         }
         public IEnumerator<T> GetEnumerator()
         {
-            int rows = Rows, cols = Cols;
+            int rows = this.Rows, cols = this.Cols;
 
             for (int i = 0; i < rows; ++i)
                 for (int j = 0; j < cols; ++j)
-                    yield return __data[i, j];
+                    yield return this.__data[i, j];
         }
         IEnumerator IEnumerable.GetEnumerator()
         {
@@ -280,12 +281,15 @@ namespace IMD
 
         private void CheckBounds(int row, int col)
         {
-            if (row < 0 || row >= Rows) throw new ArgumentOutOfRangeException("The row index is out of bounds", nameof(row));
-            if (col < 0 || col >= Cols) throw new ArgumentOutOfRangeException("The col index is out of bounds", nameof(col));
+            if (row < 0 || row >= this.Rows) throw new ArgumentOutOfRangeException("The row index is out of bounds", nameof(row));
+            if (col < 0 || col >= this.Cols) throw new ArgumentOutOfRangeException("The col index is out of bounds", nameof(col));
         }
     }
 
-    // The class describing the solution of a linear linear equation using the Gauss method
+    /// <summary>
+    /// The class describing the solution of a linear linear equation using the Gauss method
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
     public class GaussSolution<T>
     {
         private bool __hasSolution = false;
@@ -297,7 +301,7 @@ namespace IMD
         public GaussSolution() { }
 
         // Printing the solution to the textwritter 'tw' without moving to a new line
-        public void Print(TextWriter tw)
+        public void Show(TextWriter tw)
         {
             if (tw is null) throw new ArgumentNullException("The textwritter is null", nameof(tw));
 
@@ -339,12 +343,7 @@ namespace IMD
                 foreach (var expr in this.__expressions)
                     tw.WriteLine(expr);
             }
-        }
-        // Printing the solution to the textwritter 'tw' with moving to a new line
-        public void PrintLine(TextWriter stream)
-        {
-            Print(stream);
-            stream.WriteLine();
+            tw.WriteLine();
         }
         // Installation solution
         public void SetSolution(bool hasSolution, bool hasUniqueSolution, List<double> particularSolution, List<string> expressions)
@@ -670,7 +669,7 @@ namespace IMD
                        mrx[0, 1] * (mrx[1, 0] * mrx[2, 2] - mrx[1, 2] * mrx[2, 0]) +
                        mrx[0, 2] * (mrx[1, 0] * mrx[2, 1] - mrx[1, 1] * mrx[2, 0]);
 
-            T result = default(T);
+            T result = T.Zero;
             for (int j = 0; j < size; ++j)
             {
                 var subMatrix = GetSubMatrix(mrx, 0, j);
@@ -751,7 +750,7 @@ namespace IMD
             if (mrx is null) throw new ArgumentNullException("The matrix is null", nameof(mrx));
             if (mrx.IsEmpty()) throw new ArgumentWrongSizeException("The matrix is empty", nameof(mrx));
 
-            T result = default(T);
+            T result = T.Zero;
             int rows = mrx.Rows, cols = mrx.Cols;
 
             for (int i = 0; i < rows; ++i)
@@ -767,12 +766,12 @@ namespace IMD
             if (mrx is null) throw new ArgumentNullException("The matrix is null", nameof(mrx));
             if (mrx.IsEmpty()) throw new ArgumentException("The matrix is empty", nameof(mrx));
 
-            T result = default(T);
+            T result = T.Zero;
             int rows = mrx.Rows, cols = mrx.Cols;
 
             for (int j = 0; j < rows; ++j)
             {
-                T temp = default(T);
+                T temp = T.Zero;
 
                 for (int i = 0; i < cols; ++i)
                     temp += Math.Abs((dynamic)mrx[i, j]);
@@ -784,15 +783,15 @@ namespace IMD
         // Returns the infinite order norm of the matrix 'mrx'
         public static T InfinityNorm<T>(Matrix<T> mrx) where T : IComparable<T>, INumber<T>
         {
-            if (mrx == null) throw new ArgumentNullException("The matrix is null", nameof(mrx));
+            if (mrx is null) throw new ArgumentNullException("The matrix is null", nameof(mrx));
             if (mrx.IsEmpty()) throw new ArgumentException("The matrix is empty", nameof(mrx));
 
-            T result = default(T);
+            T result = T.Zero;
             int rows = mrx.Rows, cols = mrx.Cols;
 
             for (int i = 0; i < rows; ++i)
             {
-                T temp = default(T);
+                T temp = T.Zero;
 
                 for (int j = 0; j < cols; ++j)
                     temp += Math.Abs((dynamic)mrx[i, j]);
@@ -891,7 +890,7 @@ namespace IMD
                     {
                         double factor = aug[i, col];
 
-                        if (Math.Abs((dynamic)factor) > IMD.Constants.EPSILON)
+                        if (Math.Abs(factor) > IMD.Constants.EPSILON)
                             for (int j = col; j <= cols; ++j)
                                 aug[i, j] -= aug[rank, j] * factor;
                     }
@@ -906,7 +905,7 @@ namespace IMD
 
             for (int i = rank; i < rows; ++i) // Checking the system for incompatibility
             {
-                if (Math.Abs((dynamic)aug[i, cols]) > IMD.Constants.EPSILON) // No solution
+                if (Math.Abs(aug[i, cols]) > IMD.Constants.EPSILON) // No solution
                 {
                     result.SetSolution(false, false, new List<double>(), new List<string>()); 
 
@@ -932,9 +931,9 @@ namespace IMD
 
                 foreach (var freeCol in freeCols)
                 {
-                    var coefficient = aug[rowPivot[col], freeCol];
+                    double coefficient = aug[rowPivot[col], freeCol];
 
-                    if (Math.Abs((dynamic)coefficient) > IMD.Constants.EPSILON)
+                    if (Math.Abs(coefficient) > IMD.Constants.EPSILON)
                     {
                         if (coefficient < IMD.Constants.EPSILON) sb.Append($" + {-coefficient}*t{freeCol + 1}");
                         else sb.Append($" - {coefficient}*t{freeCol + 1}");
@@ -1019,8 +1018,8 @@ namespace IMD
 
                 for (int col = 0; col < n; ++col)
                 {
-                    A[i, col] = (dynamic)A[i, col] / pivotVal;
-                    result[i, col] = (dynamic)result[i, col] / pivotVal;
+                    A[i, col] /= pivotVal;
+                    result[i, col] = result[i, col] / pivotVal;
                 }
 
                 for (int r = 0; r < n; ++r)
@@ -1170,7 +1169,7 @@ namespace IMD
                             for (int l = 0; l < n; ++l)
                                 sum += Convert.ToDouble(mrx[i, l]) * B[l, j];
 
-                            newB[i, j] = (dynamic)sum;
+                            newB[i, j] = sum;
                         }
                     B = newB;
                     for (int i = 0; i < n; ++i)
@@ -1647,24 +1646,23 @@ namespace IMD
 
             int rows = mrx.Rows, cols = mrx.Cols;
             var dp = new Matrix<T>(rows, cols);
-            dynamic zero = T.Zero;
+            T zero = T.Zero;
 
             dp[0, 0] = mrx[0, 0];
 
             for (int j = 1; j < cols; ++j)
-                dp[0, j] = (dynamic)dp[0, j - 1] + (dynamic)mrx[0, j];
+                dp[0, j] = dp[0, j - 1] + mrx[0, j];
 
             for (int i = 1; i < rows; ++i)
-                dp[i, 0] = (dynamic)dp[i - 1, 0] + (dynamic)mrx[i, 0];
+                dp[i, 0] = dp[i - 1, 0] + mrx[i, 0];
 
             for (int i = 1; i < rows; ++i)
             {
                 for (int j = 1; j < cols; ++j)
                 {
-                    dynamic left = dp[i, j - 1];
-                    dynamic up = dp[i - 1, j];
-                    dynamic max = left.CompareTo(up) > 0 ? left : up;
-                    dp[i, j] = max + (dynamic)mrx[i, j];
+                    T left = dp[i, j - 1], up = dp[i - 1, j];
+                    T max = left.CompareTo(up) > 0 ? left : up;
+                    dp[i, j] = max + mrx[i, j];
                 }
             }
 
@@ -1682,24 +1680,22 @@ namespace IMD
             dp[0, 0] = mrx[0, 0];
 
             for (int j = 1; j < cols; ++j)
-                dp[0, j] = (dynamic)dp[0, j - 1] + (dynamic)mrx[0, j];
+                dp[0, j] = dp[0, j - 1] + mrx[0, j];
 
             for (int i = 1; i < rows; ++i)
-                dp[i, 0] = (dynamic)dp[i - 1, 0] + (dynamic)mrx[i, 0];
+                dp[i, 0] = dp[i - 1, 0] + mrx[i, 0];
 
             for (int i = 1; i < rows; ++i)
             {
                 for (int j = 1; j < cols; ++j)
                 {
-                    dynamic left = dp[i, j - 1];
-                    dynamic up = dp[i - 1, j];
-                    dynamic diagonal = dp[i - 1, j - 1];
+                    T left = dp[i, j - 1], up = dp[i - 1, j], diagonal = dp[i - 1, j - 1];
+                    T max = left;
 
-                    dynamic max = left;
                     if (up.CompareTo(max) > 0) max = up;
                     if (diagonal.CompareTo(max) > 0) max = diagonal;
 
-                    dp[i, j] = max + (dynamic)mrx[i, j];
+                    dp[i, j] = max + mrx[i, j];
                 }
             }
 
@@ -1718,19 +1714,17 @@ namespace IMD
             dp[0, 0] = mrx[0, 0];
 
             for (int j = 1; j < cols; ++j)
-                dp[0, j] = (dynamic)dp[0, j - 1] + (dynamic)mrx[0, j];
+                dp[0, j] = dp[0, j - 1] + mrx[0, j];
 
             for (int i = 1; i < rows; ++i)
-                dp[i, 0] = (dynamic)dp[i - 1, 0] + (dynamic)mrx[i, 0];
+                dp[i, 0] = dp[i - 1, 0] + mrx[i, 0];
 
             for (int i = 1; i < rows; ++i)
             {
                 for (int j = 1; j < cols; ++j)
                 {
-                    dynamic left = dp[i, j - 1];
-                    dynamic up = dp[i - 1, j];
-                    dynamic min = left.CompareTo(up) < 0 ? left : up;
-                    dp[i, j] = min + (dynamic)mrx[i, j];
+                    T left = dp[i, j - 1], up = dp[i - 1, j], min = left.CompareTo(up) < 0 ? left : up;
+                    dp[i, j] = min + mrx[i, j];
                 }
             }
 
@@ -1748,24 +1742,22 @@ namespace IMD
             dp[0, 0] = mrx[0, 0];
 
             for (int j = 1; j < cols; ++j)
-                dp[0, j] = (dynamic)dp[0, j - 1] + (dynamic)mrx[0, j];
+                dp[0, j] = dp[0, j - 1] + mrx[0, j];
 
             for (int i = 1; i < rows; ++i)
-                dp[i, 0] = (dynamic)dp[i - 1, 0] + (dynamic)mrx[i, 0];
+                dp[i, 0] = dp[i - 1, 0] + mrx[i, 0];
 
             for (int i = 1; i < rows; ++i)
             {
                 for (int j = 1; j < cols; ++j)
                 {
-                    dynamic left = dp[i, j - 1];
-                    dynamic up = dp[i - 1, j];
-                    dynamic diagonal = dp[i - 1, j - 1];
+                    T left = dp[i, j - 1], up = dp[i - 1, j], diagonal = dp[i - 1, j - 1];
+                    T min = left;
 
-                    dynamic min = left;
                     if (up.CompareTo(min) < 0) min = up;
                     if (diagonal.CompareTo(min) < 0) min = diagonal;
 
-                    dp[i, j] = min + (dynamic)mrx[i, j];
+                    dp[i, j] = min + mrx[i, j];
                 }
             }
 
@@ -1787,14 +1779,14 @@ namespace IMD
 
             for (int j = 1; j < cols; ++j)
             {
-                dp[0, j] = (dynamic)dp[0, j - 1] + (dynamic)mrx[0, j];
+                dp[0, j] = dp[0, j - 1] + mrx[0, j];
                 paths[0, j] = new List<(int, int)>(paths[0, j - 1]);
                 paths[0, j].Add((0, j));
             }
 
             for (int i = 1; i < rows; ++i)
             {
-                dp[i, 0] = (dynamic)dp[i - 1, 0] + (dynamic)mrx[i, 0];
+                dp[i, 0] = dp[i - 1, 0] + mrx[i, 0];
                 paths[i, 0] = new List<(int, int)>(paths[i - 1, 0]);
                 paths[i, 0].Add((i, 0));
             }
@@ -1803,17 +1795,16 @@ namespace IMD
             {
                 for (int j = 1; j < cols; ++j)
                 {
-                    dynamic up = dp[i - 1, j];
-                    dynamic left = dp[i, j - 1];
+                    T up = dp[i - 1, j], left = dp[i, j - 1];
 
                     if (up.CompareTo(left) > 0)
                     {
-                        dp[i, j] = up + (dynamic)mrx[i, j];
+                        dp[i, j] = up + mrx[i, j];
                         paths[i, j] = new List<(int, int)>(paths[i - 1, j]);
                     }
                     else
                     {
-                        dp[i, j] = left + (dynamic)mrx[i, j];
+                        dp[i, j] = left + mrx[i, j];
                         paths[i, j] = new List<(int, int)>(paths[i, j - 1]);
                     }
                     paths[i, j].Add((i, j));
@@ -1837,14 +1828,14 @@ namespace IMD
 
             for (int j = 1; j < cols; ++j)
             {
-                dp[0, j] = (dynamic)dp[0, j - 1] + (dynamic)mrx[0, j];
+                dp[0, j] = dp[0, j - 1] + mrx[0, j];
                 paths[0, j] = new List<(int, int)>(paths[0, j - 1]);
                 paths[0, j].Add((0, j));
             }
 
             for (int i = 1; i < rows; ++i)
             {
-                dp[i, 0] = (dynamic)dp[i - 1, 0] + (dynamic)mrx[i, 0];
+                dp[i, 0] = dp[i - 1, 0] + mrx[i, 0];
                 paths[i, 0] = new List<(int, int)>(paths[i - 1, 0]);
                 paths[i, 0].Add((i, 0));
             }
@@ -1853,11 +1844,8 @@ namespace IMD
             {
                 for (int j = 1; j < cols; ++j)
                 {
-                    dynamic up = dp[i - 1, j];
-                    dynamic left = dp[i, j - 1];
-                    dynamic diag = dp[i - 1, j - 1];
-
-                    dynamic max = up;
+                    T up = dp[i - 1, j], left = dp[i, j - 1], diag = dp[i - 1, j - 1];
+                    T max = up;
                     List<(int, int)> maxPath = paths[i - 1, j];
 
                     if (left.CompareTo(max) > 0)
@@ -1871,7 +1859,7 @@ namespace IMD
                         maxPath = paths[i - 1, j - 1];
                     }
 
-                    dp[i, j] = max + (dynamic)mrx[i, j];
+                    dp[i, j] = max + mrx[i, j];
                     paths[i, j] = new List<(int, int)>(maxPath);
                     paths[i, j].Add((i, j));
                 }
@@ -1895,14 +1883,14 @@ namespace IMD
 
             for (int j = 1; j < cols; ++j)
             {
-                dp[0, j] = (dynamic)dp[0, j - 1] + (dynamic)mrx[0, j];
+                dp[0, j] = dp[0, j - 1] + mrx[0, j];
                 paths[0, j] = new List<(int, int)>(paths[0, j - 1]);
                 paths[0, j].Add((0, j));
             }
 
             for (int i = 1; i < rows; ++i)
             {
-                dp[i, 0] = (dynamic)dp[i - 1, 0] + (dynamic)mrx[i, 0];
+                dp[i, 0] = dp[i - 1, 0] + mrx[i, 0];
                 paths[i, 0] = new List<(int, int)>(paths[i - 1, 0]);
                 paths[i, 0].Add((i, 0));
             }
@@ -1911,17 +1899,16 @@ namespace IMD
             {
                 for (int j = 1; j < cols; ++j)
                 {
-                    dynamic up = dp[i - 1, j];
-                    dynamic left = dp[i, j - 1];
+                    T up = dp[i - 1, j], left = dp[i, j - 1];
 
                     if (up.CompareTo(left) < 0)
                     {
-                        dp[i, j] = up + (dynamic)mrx[i, j];
+                        dp[i, j] = up + mrx[i, j];
                         paths[i, j] = new List<(int, int)>(paths[i - 1, j]);
                     }
                     else
                     {
-                        dp[i, j] = left + (dynamic)mrx[i, j];
+                        dp[i, j] = left + mrx[i, j];
                         paths[i, j] = new List<(int, int)>(paths[i, j - 1]);
                     }
                     paths[i, j].Add((i, j));
@@ -1945,14 +1932,14 @@ namespace IMD
 
             for (int j = 1; j < cols; ++j)
             {
-                dp[0, j] = (dynamic)dp[0, j - 1] + (dynamic)mrx[0, j];
+                dp[0, j] = dp[0, j - 1] + mrx[0, j];
                 paths[0, j] = new List<(int, int)>(paths[0, j - 1]);
                 paths[0, j].Add((0, j));
             }
 
             for (int i = 1; i < rows; ++i)
             {
-                dp[i, 0] = (dynamic)dp[i - 1, 0] + (dynamic)mrx[i, 0];
+                dp[i, 0] = dp[i - 1, 0] + mrx[i, 0];
                 paths[i, 0] = new List<(int, int)>(paths[i - 1, 0]);
                 paths[i, 0].Add((i, 0));
             }
@@ -1961,11 +1948,8 @@ namespace IMD
             {
                 for (int j = 1; j < cols; ++j)
                 {
-                    dynamic up = dp[i - 1, j];
-                    dynamic left = dp[i, j - 1];
-                    dynamic diag = dp[i - 1, j - 1];
-
-                    dynamic min = up;
+                    T up = dp[i - 1, j], left = dp[i, j - 1], diag = dp[i - 1, j - 1];
+                    T min = up;
                     List<(int, int)> minPath = paths[i - 1, j];
 
                     if (left.CompareTo(min) < 0)
@@ -1979,7 +1963,7 @@ namespace IMD
                         minPath = paths[i - 1, j - 1];
                     }
 
-                    dp[i, j] = min + (dynamic)mrx[i, j];
+                    dp[i, j] = min + mrx[i, j];
                     paths[i, j] = new List<(int, int)>(minPath);
                     paths[i, j].Add((i, j));
                 }
@@ -2025,6 +2009,7 @@ namespace IMD
 
                 visited[r, c] = false;
                 dp[r, c] = maxLen;
+
                 return maxLen;
             }
 
@@ -2097,7 +2082,6 @@ namespace IMD
 
             return result;
         }
-
 
         // Returns the longest ascending path in the matrix 'mrx'. The severity of the inequality is determined by the 'isSeverity' argument
         public static List<(int r, int c)> LongestIncreasingPath<T>(Matrix<T> mrx, bool isSeverity = true) where T : IComparable<T>, INumber<T>
@@ -2316,28 +2300,28 @@ namespace IMD
 
         /// Special methods
 
-        // Returns the maximum amount of gold that can be collected in the matrix 'grid' under the following conditions:
-        // - Start from any cell containing gold (> 0).
+        // Returns the maximum sum that can be accumulated in the matrix 'grid' under the following constraints:
+        // - Start from any cell with a positive value (> 0).
         // - Move only up, down, left, or right (no diagonals).
         // - Do not visit the same cell more than once.
-        // - Never visit cells with 0 gold.
-        // - Collect all gold from each visited cell.
-        public static T GetMaxGold<T>(Matrix<T> grid) where T : IComparable<T>, INumber<T>
+        // - Never visit cells with zero or negative values.
+        // - Accumulate the value from each visited cell.
+        public static T GetMaxPathSum<T>(Matrix<T> grid) where T : IComparable<T>, INumber<T>
         {
             if (grid is null) throw new ArgumentNullException("The matrix is null", nameof(grid));
             if (grid.IsEmpty()) throw new ArgumentEmptyException("The matrix is empty", nameof(grid));
 
             int rows = grid.Rows, cols = grid.Cols;
-            T result = default(T);
-            bool maxGoldInitialized = false;
+            T result = T.Zero;
+            bool initialized = false;
             var visited = new bool[rows, cols];
 
             void DFS(int r, int c, T currentSum)
             {
-                if (!maxGoldInitialized || currentSum.CompareTo(result) > 0)
+                if (!initialized || currentSum.CompareTo(result) > 0)
                 {
                     result = currentSum;
-                    maxGoldInitialized = true;
+                    initialized = true;
                 }
 
                 foreach (var dir in IMD.Constants.DIRECTIONS_WITHOUT_DIAGONAL)
@@ -2347,11 +2331,11 @@ namespace IMD
 
                     if (nr >= 0 && nr < rows && nc >= 0 && nc < cols)
                     {
-                        if (!visited[nr, nc] && Comparer<T>.Default.Compare(grid[nr, nc], default(T)) > 0)
+                        if (!visited[nr, nc] && Comparer<T>.Default.Compare(grid[nr, nc], T.Zero) > 0)
                         {
                             visited[nr, nc] = true;
                             T sum = currentSum;
-                            sum += (dynamic)grid[nr, nc];
+                            sum += grid[nr, nc];
 
                             DFS(nr, nc, sum);
 
@@ -2365,7 +2349,7 @@ namespace IMD
             {
                 for (int j = 0; j < cols; ++j)
                 {
-                    if (Comparer<T>.Default.Compare(grid[i, j], default(T)) > 0)
+                    if (Comparer<T>.Default.Compare(grid[i, j], T.Zero) > 0)
                     {
                         visited[i, j] = true;
                         DFS(i, j, grid[i, j]);
@@ -2376,20 +2360,20 @@ namespace IMD
 
             return result;
         }
-        // Returns a path with the maximum amount of gold that can be collected in the matrix 'grid' under the following conditions:
-        // - Start from any cell containing gold (> 0).
+        // Returns a path with the maximum sum that can be accumulated in the matrix 'grid' under the following constraints:
+        // - Start from any cell with a positive value (> 0).
         // - Move only up, down, left, or right (no diagonals).
         // - Do not visit the same cell more than once.
-        // - Never visit cells with 0 gold.
-        // - Collect all gold from each visited cell.
-        public static List<(int r, int c)> GetMaxGoldPath<T>(Matrix<T> grid) where T : IComparable<T>, INumber<T>
+        // - Never visit cells with zero or negative values.
+        // - Accumulate the value from each visited cell.
+        public static List<(int r, int c)> GetMaxSumPath<T>(Matrix<T> grid) where T : IComparable<T>, INumber<T>
         {
             if (grid is null) throw new ArgumentNullException("The matrix is null", nameof(grid));
             if (grid.IsEmpty()) throw new ArgumentEmptyException("The matrix is empty", nameof(grid));
 
             int rows = grid.Rows, cols = grid.Cols;
-            T maxGold = default(T);
-            bool maxGoldInitialized = false;
+            T maxGold = T.Zero;
+            bool initialized = false;
             var visited = new bool[rows, cols];
             var currentPath = new List<(int, int)>();
             var result = new List<(int, int)>();
@@ -2398,10 +2382,10 @@ namespace IMD
             {
                 currentPath.Add((r, c));
 
-                if (!maxGoldInitialized || currentSum.CompareTo(maxGold) > 0)
+                if (!initialized || currentSum.CompareTo(maxGold) > 0)
                 {
                     maxGold = currentSum;
-                    maxGoldInitialized = true;
+                    initialized = true;
                     result = new List<(int, int)>(currentPath);
                 }
 
@@ -2411,7 +2395,7 @@ namespace IMD
 
                     if (nr >= 0 && nr < rows && nc >= 0 && nc < cols)
                     {
-                        if (!visited[nr, nc] && Comparer<T>.Default.Compare(grid[nr, nc], default(T)) > 0)
+                        if (!visited[nr, nc] && Comparer<T>.Default.Compare(grid[nr, nc], T.Zero) > 0)
                         {
                             visited[nr, nc] = true;
                             T sum = currentSum;
@@ -2431,7 +2415,7 @@ namespace IMD
             {
                 for (int j = 0; j < cols; ++j)
                 {
-                    if (Comparer<T>.Default.Compare(grid[i, j], default(T)) > 0)
+                    if (Comparer<T>.Default.Compare(grid[i, j], T.Zero) > 0)
                     {
                         visited[i, j] = true;
                         DFS(i, j, grid[i, j]);
@@ -2440,63 +2424,6 @@ namespace IMD
                 }
             }
 
-            return result;
-        }
-        // Given the server center map, represented as the integer matrix 'grid' of arbitrary size, where 1 means there is a server in that cell and 0 means there is no server.
-        // Two servers are considered communicating if they are in the same row or in the same column.
-        // Returns the number of servers communicating with each other.
-        public static int CountCommunicateServers<T>(Matrix<T> grid) where T : IComparable<T>, INumber<T>
-        {
-            if (grid is null) throw new ArgumentNullException("The matrix is null", nameof(grid));
-            if (grid.IsEmpty()) throw new ArgumentEmptyException("The matrix is empty", nameof(grid));
-
-            int rows = grid.Rows, cols = grid.Cols;
-            int[] rowCount = new int[rows], colCount = new int[cols];
-            int totalServers = 0, isolated = 0;
-
-            for (int i = 0; i < rows; ++i)
-            {
-                for (int j = 0; j < cols; ++j)
-                {
-                    if (grid[i, j] == T.One)
-                    {
-                        ++rowCount[i];
-                        ++colCount[j];
-                        ++totalServers;
-                    }
-                }
-            }
-
-            for (int i = 0; i < rows; ++i)
-                for (int j = 0; j < cols; ++j)
-                    if (grid[i, j] == T.One && rowCount[i] == 1 && colCount[j] == 1)
-                        ++isolated;
-
-            return totalServers - isolated;
-        }
-        // Given the matrix 'board' of symbols board, where 'X' denotes a part of a ship, '.' denotes an empty cell.
-        // Ships do not touch each other horizontally or vertically.
-        // Only the beginning of each ship is counted - the cell 'X' that does not have an 'X' above or to the left.
-        // Returns the number of warships on the board
-        public static int CountBattleships(Matrix<char> board)
-        {
-            if (board is null) throw new ArgumentNullException("The matrix is null", nameof(board));
-            if (board.IsEmpty()) throw new ArgumentEmptyException("The matrix is empty", nameof(board));
-
-            int result = 0, rows = board.Rows, cols = board.Cols;
-
-            for (int i = 0; i < rows; ++i)
-            {
-                for (int j = 0; j < cols; ++j)
-                {
-                    if (board[i, j] == 'X')
-                    {
-                        bool isStartOfShip = (i == 0 || board[i - 1, j] != 'X') && (j == 0 || board[i, j - 1] != 'X');
-
-                        if (isStartOfShip) ++result;
-                    }
-                }
-            }
             return result;
         }
 
